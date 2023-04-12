@@ -1,0 +1,6 @@
+[submodule "DBoW2"]
+	path = DBoW2
+	url = git@github.com:John-HarringtonNZ/DBoW2.git
+[submodule "ARKitScenes"]
+	path = ARKitScenes
+	url = git@github.com:John-HarringtonNZ/ARKitScenes.git
