@@ -8,6 +8,7 @@ import argparse
 import numpy as np
 import json
 import cv2
+import matplotlib.pyplot as plt
 
 sys.path.append(os.path.abspath("/home/john/homework/slam/CMU_16833_Semantic_Scene_Recognition/ARKitScenes/depth_upsampling/"))
 from dataset import ARKitScenesDataset
@@ -85,7 +86,7 @@ def TrajStringToMatrix(traj_str):
     extrinsics = np.eye(4, 4)
     extrinsics[:3, :3] = r_w_to_p
     extrinsics[:3, -1] = t_w_to_p
-    Rt = np.linalg.inv(extrinsics)
+    Rt = np.linalg.inv(extrinsics) 
     return (ts, Rt)
 
 def convert_angle_axis_to_matrix3(angle_axis):
@@ -100,6 +101,17 @@ def st2_camera_intrinsics(filename):
     w, h, fx, fy, hw, hh = np.loadtxt(filename)
     return np.asarray([[fx, 0, hw], [0, fy, hh], [0, 0, 1]])
 
+def bboxes(annotation):
+    bbox_list = []
+    for label_info in annotation["data"]:
+        rotation = np.array(label_info["segments"]["obbAligned"]["normalizedAxes"]).reshape(3, 3)
+        transform = np.array(label_info["segments"]["obbAligned"]["centroid"]).reshape(-1, 3)
+        scale = np.array(label_info["segments"]["obbAligned"]["axesLengths"]).reshape(-1, 3)
+        box3d = compute_box_3d(scale.reshape(3).tolist(), transform, rotation)
+        bbox_list.append(box3d)
+    bbox_list = np.asarray(bbox_list)
+    return bbox_list
+
 def transform_3dod(scene_annotations, image_file, traj_line, intrinsics_file, sky_direction):
     """
     scene_annotations: -> File that contains scene annotations in scene, wrt venue frame
@@ -112,36 +124,68 @@ def transform_3dod(scene_annotations, image_file, traj_line, intrinsics_file, sk
     annotation = load_json(scene_annotations)
     intrinsics = st2_camera_intrinsics(intrinsics_file)
 
-    # Convert Camera Pose into rotation and transform
-    _, cam_transformation_matrix = TrajStringToMatrix(traj_line)
-
     # Iterate through scene annotations, and transform to get 3D bbox data
     transformation_matrix = np.zeros((4,4))
     transformation_matrix[3,3] = 1
-    bbox_list = []
-    for label_info in annotation["data"]:
-        rotation = np.array(label_info["segments"]["obbAligned"]["normalizedAxes"]).reshape(3, 3)
-        transform = np.array(label_info["segments"]["obbAligned"]["centroid"]).reshape(-1, 3)
-
-        # Update transform to camera frame
-        transformation_matrix[:3,:3] = rotation
-        transformation_matrix[:3,3] = transform
-        updated_transform = transformation_matrix @ cam_transformation_matrix
-        # Decompose updated transform
-        updated_rotation = updated_transform[:3,:3]
-        updated_translate = updated_transform[:3,3]
-
-        scale = np.array(label_info["segments"]["obbAligned"]["axesLengths"]).reshape(-1, 3)
-        box3d = compute_box_3d(scale.reshape(3).tolist(), updated_translate, updated_rotation)
-        bbox_list.append(box3d)
-    bbox_list = np.asarray(bbox_list)
 
     # Project bboxes into image for verification
+    print("Sky direction", sky_direction)
     image = ARKitScenesDataset.load_image(image_file, (192, 256), False, sky_direction)
-    transpose_image = image.transpose((1, 2, 0))
-    proj_points, _ = cv2.projectPoints(bbox_list.reshape(-1,3), np.eye(3), np.array([[0.,0.,0.]]), intrinsics, None)
+    image = image.transpose((1, 2, 0))
+
+    bboxes3d = bboxes(annotation)
+
+    # Decompose updated transform
+    _, cam_transformation_matrix = TrajStringToMatrix(traj_line) # Should be venue to camera
+    # cam_transformation_matrix = np.linalg.inv(cam_transformation_matrix)
+    cam_rotation = cam_transformation_matrix[:3,:3]
+    cam_translate = cam_transformation_matrix[:3,3]
+
+    # Invert matrix
+    m = np.array([
+        [ 0.0, -1.0, 0.0, 0.0],
+        [ 0.0, 0.0, 1.0, 0.0],
+        [-1.0, 0.0, 0.0, 0.0],
+        [ 0.0, 0.0, 0.0, 1.0]
+    ])
+
+    # Update cam transofrmation matrix
+    updated_cam_transformation_matrix = np.linalg.inv(m) @ cam_transformation_matrix
+    
+    # Creating figure
+    fig = plt.figure(figsize = (10, 7))
+    ax = plt.axes(projection ="3d")
+    pts = bboxes3d.reshape(-1,3)
+    x = pts[:,0]
+    y = pts[:,1]
+    z = pts[:,2]
+    
+    # Creating plot
+    ax.scatter3D(x, y, z, color = "green")
+    ax.scatter3D(cam_translate[0], cam_translate[1], cam_translate[2], color='red')
+
+    # Transform points in 3D
+    transformed_pts = np.dot(updated_cam_transformation_matrix, np.hstack([pts, np.ones((pts.shape[0],1))]).T).T
+    transformed_x = transformed_pts[:,0]
+    transformed_y = transformed_pts[:,1]
+    transformed_z = transformed_pts[:,2]
+    
+    # Creating plot
+    ax.scatter3D(transformed_x, transformed_y, transformed_z, color = "blue")
+
+    plt.title("simple 3D scatter plot")
+    
+    # show plot
+    plt.show()
+
+    proj_points, _ = cv2.projectPoints(
+        bboxes3d.reshape(-1,3), 
+        updated_cam_transformation_matrix[:3,:3], 
+        updated_cam_transformation_matrix[:3,3], 
+        intrinsics, 
+        None)
     for pt in proj_points:
-        image = cv2.circle(transpose_image, tuple(pt.astype(int)[0]), 10, (255, 0, 0), -1)
+        image = cv2.circle(image, tuple(pt.astype(int)[0]), 5, (255, 0, 0), -1)
 
     cv2.imshow("Test Projection", image.astype('uint8'))
     cv2.waitKey()
