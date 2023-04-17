@@ -108,8 +108,9 @@ def transform_3dod(scene_annotations, image_file, traj_line, intrinsics_file, sk
     intrinsics: -> width height focal_length_x focal_length_y principal_point_x principal_point_y
     """
 
-    # Load Annotations    
+    # Load Annotations and intrinsics
     annotation = load_json(scene_annotations)
+    intrinsics = st2_camera_intrinsics(intrinsics_file)
 
     # Convert Camera Pose into rotation and transform
     _, cam_transformation_matrix = TrajStringToMatrix(traj_line)
@@ -138,32 +139,36 @@ def transform_3dod(scene_annotations, image_file, traj_line, intrinsics_file, sk
     # Project bboxes into image for verification
     image = ARKitScenesDataset.load_image(image_file, (192, 256), False, sky_direction)
     transpose_image = image.transpose((1, 2, 0))
-    cv2.imshow("Test", transpose_image.astype(int))
-    intrinsics = st2_camera_intrinsics(intrinsics_file)
     proj_points, _ = cv2.projectPoints(bbox_list.reshape(-1,3), np.eye(3), np.array([[0.,0.,0.]]), intrinsics, None)
     for pt in proj_points:
-        image = cv2.circle(image, tuple(pt.astype(int)[0]), 0, (255, 0, 0), -1)
+        image = cv2.circle(transpose_image, tuple(pt.astype(int)[0]), 10, (255, 0, 0), -1)
 
+    cv2.imshow("Test Projection", image.astype('uint8'))
+    cv2.waitKey()
     return
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    scene_ids = get_data(n_scenes=10)
+    video_ids = get_data(n_scenes=10)
 
-    for scene_id in scene_ids:
+    for video_id in video_ids:
         # Get images in relevant directory
-        scene_dir = f"../ARKitScenes/data/3dod/Training/{scene_id}/"
-        bbox_annotations = scene_dir + f"{scene_id}_3dod_annotation.json"
-        images = os.listdir(scene_dir + f"{scene_id}_frames/lowres_wide")
-        intrinsics = os.listdir(scene_dir + f"{scene_id}_frames/lowres_wide_intrinsics")
-        traj_file = scene_dir + f"{scene_id}_frames/lowres_wide.traj"
+        scene_dir = f"../ARKitScenes/data/3dod/Training/{video_id}/"
+        bbox_annotations = scene_dir + f"{video_id}_3dod_annotation.json"
+        images = sorted(os.listdir(scene_dir + f"{video_id}_frames/lowres_wide"))
+        intrinsics = sorted(os.listdir(scene_dir + f"{video_id}_frames/lowres_wide_intrinsics"))
+        traj_file = scene_dir + f"{video_id}_frames/lowres_wide.traj"
         traj = open(traj_file, "r").readlines()
         metadata = pd.read_csv("../ARKitScenes/data/3dod/metadata.csv")
+        # Get valid sky_direction
+        sky_direction = metadata.loc[metadata['video_id'] == int(video_id), 'sky_direction'].iloc[0]
 
         for i in range(len(traj)):
+            print(intrinsics[i])
+            print(traj[i])
             transform_3dod(
                 bbox_annotations, 
-                os.path.join(scene_dir + f"{scene_id}_frames/lowres_wide", images[i]), 
+                os.path.join(scene_dir + f"{video_id}_frames/lowres_wide", images[i]), 
                 traj[i], 
-                os.path.join(scene_dir + f"{scene_id}_frames/lowres_wide_intrinsics", intrinsics[i]), metadata.sky_direction[i])
+                os.path.join(scene_dir + f"{video_id}_frames/lowres_wide_intrinsics", intrinsics[i]), sky_direction)
