@@ -14,6 +14,10 @@ import glob
 sys.path.append(os.path.abspath("/home/john/homework/slam/CMU_16833_Semantic_Scene_Recognition/ARKitScenes/depth_upsampling/"))
 from dataset import ARKitScenesDataset
 
+sys.path.append(os.path.abspath("/home/john/homework/slam/CMU_16833_Semantic_Scene_Recognition/ARKitScenes/threedod/benchmark_scripts/"))
+from rectify_im import decide_pose, rotate_pose
+
+
 def get_data(n_scenes=1):
 
     # Look through 3dod_train_val_splits.csv
@@ -142,8 +146,7 @@ def transform_3dod(scene_annotations, image_file, traj_line, intrinsics_file, sk
     centers = []
     for label_info in annotation["data"]:
         centers.append(np.array(label_info["segments"]["obbAligned"]["centroid"]).reshape(-1, 3))
-    centers = np.array(centers)[:,0,:]
-
+    centers = bboxes3d.reshape(-1,3)
 
     # Decompose updated transform
     _, cam_transformation_matrix = TrajStringToMatrix(traj_line) # Should be venue to camera
@@ -173,16 +176,20 @@ def transform_3dod(scene_annotations, image_file, traj_line, intrinsics_file, sk
     ax.scatter3D(transformed_x, transformed_y, transformed_z, color = "blue")
 
     plt.title("simple 3D scatter plot")
-    
+
+    # Strange result with NP advanced indexing within cv2 projectPoints
+    filtered_pts = transformed_pts[np.where(transformed_pts[:,2] >=0)]
+
     # show plot
-    proj_points, _ = cv2.projectPoints(
-        transformed_pts[:,:3].reshape(-1,3), 
-        np.eye(3), 
-        np.zeros((3,1)), 
-        intrinsics, 
-        None)
+    proj_points, _ = cv2.projectPoints(filtered_pts[:,:3].reshape(-1,3).astype('float64'), np.eye(3), np.zeros((3,1)), intrinsics, None)
     for pt in proj_points:
         image = cv2.circle(image, tuple(pt.astype(int)[0]), 5, (255, 0, 0), -1)
+
+    # Rotate for visualization
+    direction2poseidx = {
+        "Left": 1, "Right": 3, "Down": 2, "Up": 0
+    }
+    image = rotate_pose(image, direction2poseidx[sky_direction])
 
     cv2.imshow("Test Projection", image.astype('uint8'))
     cv2.waitKey()
