@@ -9,6 +9,7 @@ import numpy as np
 import json
 import cv2
 import matplotlib.pyplot as plt
+import glob
 
 sys.path.append(os.path.abspath("/home/john/homework/slam/CMU_16833_Semantic_Scene_Recognition/ARKitScenes/depth_upsampling/"))
 from dataset import ARKitScenesDataset
@@ -80,6 +81,7 @@ def TrajStringToMatrix(traj_str):
     ts = tokens[0]
     # Rotation in angle axis
     angle_axis = [float(tokens[1]), float(tokens[2]), float(tokens[3])]
+    print(angle_axis)
     r_w_to_p = convert_angle_axis_to_matrix3(np.asarray(angle_axis))
     # Translation
     t_w_to_p = np.asarray([float(tokens[4]), float(tokens[5]), float(tokens[6])])
@@ -129,33 +131,41 @@ def transform_3dod(scene_annotations, image_file, traj_line, intrinsics_file, sk
     transformation_matrix[3,3] = 1
 
     # Project bboxes into image for verification
+    print("Image: ")
+    print(image_file)
     print("Sky direction", sky_direction)
-    image = ARKitScenesDataset.load_image(image_file, (192, 256), False, sky_direction)
+    image = ARKitScenesDataset.load_image(image_file, (192, 256), False, "Up")
     image = image.transpose((1, 2, 0))
 
     bboxes3d = bboxes(annotation)
 
+    centers = []
+    for label_info in annotation["data"]:
+        centers.append(np.array(label_info["segments"]["obbAligned"]["centroid"]).reshape(-1, 3))
+    centers = np.array(centers)[:,0,:]
+
+
     # Decompose updated transform
     _, cam_transformation_matrix = TrajStringToMatrix(traj_line) # Should be venue to camera
-    # cam_transformation_matrix = np.linalg.inv(cam_transformation_matrix)
+    cam_transformation_matrix = np.linalg.inv(cam_transformation_matrix)
     cam_rotation = cam_transformation_matrix[:3,:3]
     cam_translate = cam_transformation_matrix[:3,3]
 
     # Invert matrix
     m = np.array([
-        [ 0.0, -1.0, 0.0, 0.0],
-        [ 0.0, 0.0, 1.0, 0.0],
-        [-1.0, 0.0, 0.0, 0.0],
+        [ 0.0, 0.0, -1.0, 0.0],
+        [ -1.0, 0.0, 0.0, 0.0],
+        [ 0.0, 1.0, 0.0, 0.0],
         [ 0.0, 0.0, 0.0, 1.0]
     ])
 
     # Update cam transofrmation matrix
-    updated_cam_transformation_matrix = np.linalg.inv(m) @ cam_transformation_matrix
-    
+    cam_transformation_matrix = np.linalg.inv(m) @ cam_transformation_matrix
+
     # Creating figure
     fig = plt.figure(figsize = (10, 7))
     ax = plt.axes(projection ="3d")
-    pts = bboxes3d.reshape(-1,3)
+    pts = centers.reshape(-1,3)
     x = pts[:,0]
     y = pts[:,1]
     z = pts[:,2]
@@ -165,7 +175,7 @@ def transform_3dod(scene_annotations, image_file, traj_line, intrinsics_file, sk
     ax.scatter3D(cam_translate[0], cam_translate[1], cam_translate[2], color='red')
 
     # Transform points in 3D
-    transformed_pts = np.dot(updated_cam_transformation_matrix, np.hstack([pts, np.ones((pts.shape[0],1))]).T).T
+    transformed_pts = np.dot(cam_transformation_matrix, np.hstack([pts, np.ones((pts.shape[0],1))]).T).T
     transformed_x = transformed_pts[:,0]
     transformed_y = transformed_pts[:,1]
     transformed_z = transformed_pts[:,2]
@@ -176,12 +186,12 @@ def transform_3dod(scene_annotations, image_file, traj_line, intrinsics_file, sk
     plt.title("simple 3D scatter plot")
     
     # show plot
-    plt.show()
+    # plt.show()
 
     proj_points, _ = cv2.projectPoints(
-        bboxes3d.reshape(-1,3), 
-        updated_cam_transformation_matrix[:3,:3], 
-        updated_cam_transformation_matrix[:3,3], 
+        centers.reshape(-1,3), 
+        cam_rotation, 
+        cam_translate, 
         intrinsics, 
         None)
     for pt in proj_points:
@@ -197,8 +207,16 @@ if __name__ == "__main__":
     video_ids = get_data(n_scenes=10)
 
     for video_id in video_ids:
-        # Get images in relevant directory
         scene_dir = f"../ARKitScenes/data/3dod/Training/{video_id}/"
+        frame_folder = scene_dir + f"{video_id}_frames/lowres_wide"
+        depth_images = sorted(glob.glob(os.path.join(frame_folder, "*.png")))
+        frame_ids = [os.path.basename(x) for x in depth_images]
+        frame_ids = [x.split(".png")[0].split("_")[1] for x in frame_ids]
+        video_id = frame_folder.split('/')[-3]
+        frame_ids = [float(x) for x in frame_ids]
+        frame_ids.sort()
+
+        # Get images in relevant directory
         bbox_annotations = scene_dir + f"{video_id}_3dod_annotation.json"
         images = sorted(os.listdir(scene_dir + f"{video_id}_frames/lowres_wide"))
         intrinsics = sorted(os.listdir(scene_dir + f"{video_id}_frames/lowres_wide_intrinsics"))
@@ -209,10 +227,12 @@ if __name__ == "__main__":
         sky_direction = metadata.loc[metadata['video_id'] == int(video_id), 'sky_direction'].iloc[0]
 
         for i in range(len(traj)):
-            print(intrinsics[i])
-            print(traj[i])
+
+            intrinsics = scene_dir + f"{video_id}_frames/lowres_wide_intrinsics/" + video_id + "_" + "{:.3f}".format(frame_ids[i]) + ".pincam"
+            image = scene_dir + f"{video_id}_frames/lowres_wide/" + video_id + "_" + "{:.3f}".format(frame_ids[i]) + ".png"
+
             transform_3dod(
                 bbox_annotations, 
-                os.path.join(scene_dir + f"{video_id}_frames/lowres_wide", images[i]), 
+                image, 
                 traj[i], 
-                os.path.join(scene_dir + f"{video_id}_frames/lowres_wide_intrinsics", intrinsics[i]), sky_direction)
+                intrinsics, sky_direction)
