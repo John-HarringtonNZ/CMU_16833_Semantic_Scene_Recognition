@@ -151,17 +151,6 @@ def transform_3dod(scene_annotations, image_file, traj_line, intrinsics_file, sk
     cam_rotation = cam_transformation_matrix[:3,:3]
     cam_translate = cam_transformation_matrix[:3,3]
 
-    # Invert matrix
-    m = np.array([
-        [ 0.0, 0.0, -1.0, 0.0],
-        [ -1.0, 0.0, 0.0, 0.0],
-        [ 0.0, 1.0, 0.0, 0.0],
-        [ 0.0, 0.0, 0.0, 1.0]
-    ])
-
-    # Update cam transofrmation matrix
-    cam_transformation_matrix = np.linalg.inv(m) @ cam_transformation_matrix
-
     # Creating figure
     fig = plt.figure(figsize = (10, 7))
     ax = plt.axes(projection ="3d")
@@ -186,12 +175,10 @@ def transform_3dod(scene_annotations, image_file, traj_line, intrinsics_file, sk
     plt.title("simple 3D scatter plot")
     
     # show plot
-    # plt.show()
-
     proj_points, _ = cv2.projectPoints(
-        centers.reshape(-1,3), 
-        cam_rotation, 
-        cam_translate, 
+        transformed_pts[:,:3].reshape(-1,3), 
+        np.eye(3), 
+        np.zeros((3,1)), 
         intrinsics, 
         None)
     for pt in proj_points:
