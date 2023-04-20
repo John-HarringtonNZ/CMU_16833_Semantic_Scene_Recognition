@@ -1,6 +1,17 @@
 import argparse
 import yaml
 
+"""
+Proposed Metrics:
+
+---Top-N
+
+---Precision / Recall
+
+---PR Curve - Mean Average Precision
+
+"""
+
 def identity_filter(target_file, proposals):
     return proposals
 

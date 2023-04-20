@@ -2,8 +2,15 @@
 Proposed Filter Types:
 
 ---Filter based on geometric matching
+    Get coordinate frame, mIOU of 3D bounding boxes
 
----Filter based on semantic type matching 
+---Filter based on semantic type matching
+    Feasible instance counts
+
+---Filter based on sizes of objects
+    
+
+---Filter based on color of objects
 
 """
 
@@ -14,8 +21,8 @@ from collections import Counter
 import yaml
 
 def get_scene_annotation(proposal_file):
-    visit_id = proposal_file.split("_")[0]
-    annotation_file = f"../ARKitScenes/data/3dod/{visit_id}/{visit_id}_3dod_annotation.json"
+    video_id = proposal_file.split("_")[0]
+    annotation_file = f"../ARKitScenes/data/3dod/{video_id}/{video_id}_3dod_annotation.json"
     return load_json(annotation_file)
 
 def get_scene_semantic_counts(annotation):
@@ -45,10 +52,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "--proposals",type=str, required=True,
+        "--proposals",type=str, default='../DBoW2/build/output.yaml'
     )
     parser.add_argument(
-        "--memory-dir", type=str, default='ARKitScenes/memory',
+        "--memory-dir", type=str, default='ARKitScenes/memory'
     )
     parser.add_argument(
         "--target-dir", type=str, default='ARKitScenes/target'
@@ -62,5 +69,5 @@ if __name__ == "__main__":
     for target, proposals in data.items():
         filtered_proposals[target] = proposal_filter(target, proposals, [identity_filter])
 
-    with open(f"filtered_{args.proposals}", 'w') as outfile:
+    with open(f"filtered_proposals.yaml", 'w') as outfile:
         yaml.dump(data, outfile)
