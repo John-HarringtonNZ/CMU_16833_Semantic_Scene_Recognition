@@ -45,7 +45,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "--proposals",type=str, required=True
+        "--proposals",type=str, required=True,
+    )
+    parser.add_argument(
+        "--memory-dir", type=str, default='memory',
+    )
+    parser.add_argument(
+        "--target-dir", type=str, default='target'
     )
     args = parser.parse_args()
 
