@@ -48,10 +48,10 @@ if __name__ == "__main__":
         "--proposals",type=str, required=True,
     )
     parser.add_argument(
-        "--memory-dir", type=str, default='memory',
+        "--memory-dir", type=str, default='ARKitScenes/memory',
     )
     parser.add_argument(
-        "--target-dir", type=str, default='target'
+        "--target-dir", type=str, default='ARKitScenes/target'
     )
     args = parser.parse_args()
 

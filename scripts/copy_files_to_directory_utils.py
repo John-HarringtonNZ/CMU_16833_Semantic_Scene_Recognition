@@ -35,7 +35,6 @@ def copy_videos(source, destination_memory, destination_target, data_set_percent
 
 
 if __name__ == "__main__":
-
     source = "../ARKitScenes/data/3dod/Training/"
     destination_memory = "../ARKitScenes/memory/"
     destination_target = "../ARKitScenes/target/"
