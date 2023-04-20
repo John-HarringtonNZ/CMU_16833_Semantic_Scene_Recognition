@@ -4,3 +4,6 @@
 [submodule "ARKitScenes"]
 	path = ARKitScenes
 	url = git@github.com:John-HarringtonNZ/ARKitScenes.git
+[submodule "yaml-cpp"]
+	path = yaml-cpp
+	url = git@github.com:jbeder/yaml-cpp.git
