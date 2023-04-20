@@ -41,10 +41,10 @@ if __name__ == "__main__":
     os.makedirs(os.path.dirname(destination_memory), exist_ok=True)
     os.makedirs(os.path.dirname(destination_target), exist_ok=True)
 
-    copy_videos(source, destination_memory, destination_target, data_set_percent_size = float(0.07))
+    copy_videos(source, destination_memory, destination_target, data_set_percent_size = float(0.9))
 
-    source1 = "../ARKitScenes/data/3dod/Training/40753679/40753679_frames/lowres_wide"
-    source2 = "../ARKitScenes/data/3dod/Training/41254925/41254925_frames/lowres_wide"
+    source1 = "../ARKitScenes/data/3dod/Training/40777060/40777060_frames/lowres_wide"
+    source2 = "../ARKitScenes/data/3dod/Training/40777065/40777065_frames/lowres_wide"
 
     original_count1 = 0
     for root_dir, cur_dir, files in os.walk(source1):
