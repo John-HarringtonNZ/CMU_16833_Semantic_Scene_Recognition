@@ -38,7 +38,9 @@ if __name__ == "__main__":
     source = "../ARKitScenes/data/3dod/Training/"
     destination_memory = "../ARKitScenes/memory"
     destination_target = "../ARKitScenes/target"
-    
+    os.makedirs(os.path.dirname(destination_memory), exist_ok=True)
+    os.makedirs(os.path.dirname(destination_target), exist_ok=True)
+
     copy_videos(source, destination_memory, destination_target, data_set_percent_size = float(0.07))
 
     source1 = "../ARKitScenes/data/3dod/Training/40753679/40753679_frames/lowres_wide"
