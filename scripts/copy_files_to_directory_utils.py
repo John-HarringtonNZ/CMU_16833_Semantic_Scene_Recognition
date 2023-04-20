@@ -36,8 +36,8 @@ def copy_videos(source, destination_memory, destination_target, data_set_percent
 if __name__ == "__main__":
 
     source = "../ARKitScenes/data/3dod/Training/"
-    destination_memory = "../ARKitScenes/memory"
-    destination_target = "../ARKitScenes/target"
+    destination_memory = "../ARKitScenes/memory/"
+    destination_target = "../ARKitScenes/target/"
     os.makedirs(os.path.dirname(destination_memory), exist_ok=True)
     os.makedirs(os.path.dirname(destination_target), exist_ok=True)
 
