@@ -11,10 +11,10 @@ import cv2
 import matplotlib.pyplot as plt
 import glob
 
-sys.path.append(os.path.abspath("/home/john/homework/slam/CMU_16833_Semantic_Scene_Recognition/ARKitScenes/depth_upsampling/"))
+sys.path.append(os.path.abspath("../ARKitScenes/depth_upsampling/"))
 from dataset import ARKitScenesDataset
 
-sys.path.append(os.path.abspath("/home/john/homework/slam/CMU_16833_Semantic_Scene_Recognition/ARKitScenes/threedod/benchmark_scripts/"))
+sys.path.append(os.path.abspath("../ARKitScenes/threedod/benchmark_scripts/"))
 from rectify_im import decide_pose, rotate_pose
 
 
