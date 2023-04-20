@@ -16,6 +16,7 @@ def copy_videos(source, destination_memory, destination_target, data_set_percent
 
         files = [f for f in os.listdir(frame_folder) if f.endswith('.png')]
 
+        random.seed(0)
         random.shuffle(files)
     
         split_num = int(len(files)*data_set_percent_size)
