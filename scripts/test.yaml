@@ -1,0 +1,10 @@
+targets/image3.png:
+  - file_name: memory/image3.png
+    score: 0.95435438220887248
+  - file_name: images/image1.png
+    score: 0.19417156310622247
+targets/image2.png:
+  - file_name: images/image2.png
+    score: 0.94694830861469259
+  - file_name: images/image1.png
+    score: 0.13348145244479381
