@@ -200,33 +200,33 @@ if __name__ == "__main__":
 
     video_ids = get_data(n_scenes=10)
 
-    for video_id in video_ids:
-        scene_dir = f"../ARKitScenes/data/3dod/Training/{video_id}/"
-        frame_folder = scene_dir + f"{video_id}_frames/lowres_wide"
-        depth_images = sorted(glob.glob(os.path.join(frame_folder, "*.png")))
-        frame_ids = [os.path.basename(x) for x in depth_images]
-        frame_ids = [x.split(".png")[0].split("_")[1] for x in frame_ids]
-        video_id = frame_folder.split('/')[-3]
-        frame_ids = [float(x) for x in frame_ids]
-        frame_ids.sort()
+    # for video_id in video_ids:
+    #     scene_dir = f"../ARKitScenes/data/3dod/Training/{video_id}/"
+    #     frame_folder = scene_dir + f"{video_id}_frames/lowres_wide"
+    #     depth_images = sorted(glob.glob(os.path.join(frame_folder, "*.png")))
+    #     frame_ids = [os.path.basename(x) for x in depth_images]
+    #     frame_ids = [x.split(".png")[0].split("_")[1] for x in frame_ids]
+    #     video_id = frame_folder.split('/')[-3]
+    #     frame_ids = [float(x) for x in frame_ids]
+    #     frame_ids.sort()
 
-        # Get images in relevant directory
-        bbox_annotations = scene_dir + f"{video_id}_3dod_annotation.json"
-        images = sorted(os.listdir(scene_dir + f"{video_id}_frames/lowres_wide"))
-        intrinsics = sorted(os.listdir(scene_dir + f"{video_id}_frames/lowres_wide_intrinsics"))
-        traj_file = scene_dir + f"{video_id}_frames/lowres_wide.traj"
-        traj = open(traj_file, "r").readlines()
-        metadata = pd.read_csv("../ARKitScenes/data/3dod/metadata.csv")
-        # Get valid sky_direction
-        sky_direction = metadata.loc[metadata['video_id'] == int(video_id), 'sky_direction'].iloc[0]
+    #     # Get images in relevant directory
+    #     bbox_annotations = scene_dir + f"{video_id}_3dod_annotation.json"
+    #     images = sorted(os.listdir(scene_dir + f"{video_id}_frames/lowres_wide"))
+    #     intrinsics = sorted(os.listdir(scene_dir + f"{video_id}_frames/lowres_wide_intrinsics"))
+    #     traj_file = scene_dir + f"{video_id}_frames/lowres_wide.traj"
+    #     traj = open(traj_file, "r").readlines()
+    #     metadata = pd.read_csv("../ARKitScenes/data/3dod/metadata.csv")
+    #     # Get valid sky_direction
+    #     sky_direction = metadata.loc[metadata['video_id'] == int(video_id), 'sky_direction'].iloc[0]
 
-        for i in range(len(traj)):
+    #     for i in range(len(traj)):
 
-            intrinsics = scene_dir + f"{video_id}_frames/lowres_wide_intrinsics/" + video_id + "_" + "{:.3f}".format(frame_ids[i]) + ".pincam"
-            image = scene_dir + f"{video_id}_frames/lowres_wide/" + video_id + "_" + "{:.3f}".format(frame_ids[i]) + ".png"
+    #         intrinsics = scene_dir + f"{video_id}_frames/lowres_wide_intrinsics/" + video_id + "_" + "{:.3f}".format(frame_ids[i]) + ".pincam"
+    #         image = scene_dir + f"{video_id}_frames/lowres_wide/" + video_id + "_" + "{:.3f}".format(frame_ids[i]) + ".png"
 
-            transform_3dod(
-                bbox_annotations, 
-                image, 
-                traj[i], 
-                intrinsics, sky_direction)
+    #         transform_3dod(
+    #             bbox_annotations, 
+    #             image, 
+    #             traj[i], 
+    #             intrinsics, sky_direction)
