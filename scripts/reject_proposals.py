@@ -220,4 +220,4 @@ if __name__ == "__main__":
         filtered_proposals[target] = proposal_filter(target, proposals, filters)
 
     with open(f"filtered_proposals.yaml", 'w') as outfile:
-        yaml.dump(data, outfile)
+        yaml.dump(filtered_proposals, outfile)

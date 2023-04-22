@@ -27,7 +27,7 @@ def precision_at_n(proposals: dict, n: int) -> float:
 
     return precision
 
-def pr_curve(proposals: dict) -> float:
+def pr_curve(proposals: dict, proposals_name: str) -> float:
     # Intialize counter
     true_positives = 0
     false_positives = 0
@@ -83,12 +83,13 @@ def pr_curve(proposals: dict) -> float:
     plt.title('Precision-Recall Curve')
     plt.xlim([0, 1])
     plt.ylim([0, 1])
-    plt.show()
+
+    plt.savefig(f"PR Curve: {proposals_name}")
 
     return np.sum(precision_values) / len(precision_values)
 
-def evaluate_proposals(filtered_proposals: dict) -> None:
-    map = pr_curve(filtered_proposals)
+def evaluate_proposals(filtered_proposals: dict, proposals_name: str) -> None:
+    map = pr_curve(filtered_proposals, proposals_name)
     print("Mean Average Precision: ", map)
 
     top_n_values = [1, 3, 5, 10, 20, 50, 100]
@@ -113,5 +114,6 @@ if __name__ == "__main__":
     filtered_proposals = {}
     for target, proposals in data.items():
         filtered_proposals[target] = proposals
+    proposals_name = args.filtered_proposals.split(".")[0]
     
-    evaluate_proposals(filtered_proposals)
+    evaluate_proposals(filtered_proposals, proposals_name)
