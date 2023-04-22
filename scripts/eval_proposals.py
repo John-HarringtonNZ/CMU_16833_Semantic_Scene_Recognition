@@ -9,7 +9,7 @@ def precision_at_n(proposals: dict, n: int) -> float:
     # Intialize counter
     true_positives = 0
     false_positives = 0
-    
+
     # Loop through all targets and proposals to accumulate tp and fp
     for targets, proposal_set in proposals.items():
         target_number = int(targets.split('_')[0])
