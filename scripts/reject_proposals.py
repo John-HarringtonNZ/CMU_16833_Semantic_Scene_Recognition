@@ -17,6 +17,7 @@ import argparse
 from arkit_scenes_utils import *
 from collections import Counter
 import yaml
+import random
 
 CACHED_SCENE_ANNOTATIONS = {}
 
@@ -86,7 +87,7 @@ def volume_comparison_filter(target_file, proposals, target_traj_line):
 
     return filtered_proposals
 
-def semantic_count_filter(target_file, proposals, target_traj_line):
+def semantic_count_filter(target_file, proposals, target_traj_line, add_noise=True, noise_level=0.1):
     """
     target_file -> string for file location
     proposals -> [Dict{'file_name':xx.png, 'score': 0.9}]
@@ -101,12 +102,22 @@ def semantic_count_filter(target_file, proposals, target_traj_line):
     # Get Semantic scene count
     target_semantic_count = get_scene_semantic_counts(filtered_target_annotations)
 
+    # Apply target dropout
+    if add_noise:
+        for item in target_semantic_count.keys():
+            target_semantic_count[item] -= int(noise_level * random() * target_semantic_count[item])
+
     filtered_proposals = []
     for proposal in proposals:
 
         # Proposal annotation
         proposal_annotation = get_scene_annotation(proposal['file_name'])
         proposal_semantic_count = get_scene_semantic_counts(proposal_annotation['data'])
+
+        # Apply proposal dropout
+        if add_noise:
+            for item in proposal_semantic_count.keys():
+                proposal_semantic_count[item] -= int(noise_level * random() * proposal_semantic_count[item])
 
         # Check if semantic count is feasible 
         all_good = True
