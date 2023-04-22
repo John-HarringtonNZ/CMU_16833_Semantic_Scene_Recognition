@@ -196,7 +196,15 @@ def transform_3dod(scene_annotations, image_file, traj_line, intrinsics_file, sk
     cv2.waitKey()
     return
 
-def filter_annotations_by_view_frustrum(target_annotations_data, target_traj_line):
+def get_intrinsics(image_file_name):
+
+    video_id = image_file_name.split("_")[0]
+    file_name = image_file_name[:-4]
+    intrinsics_file = f"../ARKitScenes/data/3dod/Training/{video_id}/{video_id}_frames/lowres_wide_intrinsics/{file_name}.pincam"
+
+    return st2_camera_intrinsics(intrinsics_file)
+
+def filter_annotations_by_view_frustrum(frame_id, target_annotations_data, target_traj_line):
 
     centers = []
     for label_info in target_annotations_data:
@@ -212,7 +220,22 @@ def filter_annotations_by_view_frustrum(target_annotations_data, target_traj_lin
 
     filtered_inds = np.where(transformed_pts[:,2] >=0)[0].tolist()
 
-    return [target_annotations_data[i] for i in filtered_inds], filtered_inds
+    # Filter by frustrum geometry 
+    intrinsics = get_intrinsics(frame_id)
+    proj_points, _ = cv2.projectPoints(transformed_pts[:,:3].reshape(-1,3).astype('float64'), np.eye(3), np.zeros((3,1)), intrinsics, None)
+
+    # Filter points by what's in bounds
+    h, w = (192, 256)
+    bounds_mask = \
+        (proj_points[:,0,0] > 0) & \
+        (proj_points[:,0,0] <= h) & \
+        (proj_points[:,0,1] > 0) & \
+        (proj_points[:,0,1] <= w)
+    
+    bounded_inds = np.where(bounds_mask)
+    combined_filter = np.intersect1d(bounded_inds, filtered_inds)
+
+    return [target_annotations_data[i] for i in combined_filter], filtered_inds
 
 def get_target_volumes(target_annotation, target_traj_line):
     
@@ -280,9 +303,10 @@ if __name__ == "__main__":
             intrinsics = scene_dir + f"{video_id}_frames/lowres_wide_intrinsics/" + video_id + "_" + "{:.3f}".format(frame_ids[i]) + ".pincam"
             image = scene_dir + f"{video_id}_frames/lowres_wide/" + video_id + "_" + "{:.3f}".format(frame_ids[i]) + ".png"
 
+            image_name = video_id + "_" + "{:.3f}".format(frame_ids[i]) + ".png"
 
             annotation = load_json(bbox_annotations)
-            filter_annotations_by_view_frustrum(annotation['data'], traj[i])
+            filter_annotations_by_view_frustrum(image_name, annotation['data'], traj[i])
 
             transform_3dod(
                 bbox_annotations, 
