@@ -121,7 +121,7 @@ def semantic_count_filter(target_file, proposals, target_traj_line):
 
     return filtered_proposals
 
-def bbox_center_alignment_filter(target_file, proposals, target_traj_line, thresh=0.1):
+def bbox_center_alignment_filter(target_file, proposals, target_traj_line, noise_std=0.1):
     target_annotation = get_scene_annotation(target_file)
     filtered_target_annotations, _ = filter_annotations_by_view_frustrum(target_file, target_annotation['data'], target_traj_line)
     if len(filtered_target_annotations) <= 1:
@@ -130,6 +130,7 @@ def bbox_center_alignment_filter(target_file, proposals, target_traj_line, thres
     target_bbox_info = bbox_labeled_centers(filtered_target_annotations)
     target_labels = [t['label'] for t in target_bbox_info]
     target_centers = np.array([t['center'].flatten() for t in target_bbox_info])
+    target_centers += np.random.normal(0, noise_std, size=target_centers.shape)
     filtered_proposals = []
 
     for proposal in proposals:
@@ -139,6 +140,7 @@ def bbox_center_alignment_filter(target_file, proposals, target_traj_line, thres
         # Find the least frequent proposal label that is present in target_labels to use as the anchor
         proposal_labels = [p['label'] for p in proposal_bbox_info]
         proposal_centers = np.array([p['center'].flatten() for p in proposal_bbox_info])
+        proposal_centers += np.random.normal(0, noise_std, size=proposal_centers.shape)
         proposal_label_counts = Counter(proposal_labels).most_common()
         proposal_label_counts.reverse()
         anchor_label = None
@@ -171,8 +173,9 @@ def bbox_center_alignment_filter(target_file, proposals, target_traj_line, thres
                     break
                 min_error = np.min(np.linalg.norm(transformed_proposal_centers[proposal_idx] - transformed_target_centers[ti], axis=1))
                 curr_total_error += min_error
+            curr_total_error /= len(transformed_target_centers)
             min_total_error = min(min_total_error, curr_total_error)
-        if min_total_error < thresh and is_good:
+        if min_total_error < max(6*noise_std,0.1) and is_good:
             filtered_proposals.append(proposal)
 
     return filtered_proposals

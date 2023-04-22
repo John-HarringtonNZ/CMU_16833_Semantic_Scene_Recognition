@@ -12,14 +12,14 @@ def precision_at_n(proposals: dict, n: int) -> float:
 
     # Loop through all targets and proposals to accumulate tp and fp
     for targets, proposal_set in proposals.items():
-        target_number = int(targets.split('_')[0])
+        target_number = int(targets.split('_')[0].split('/')[-1])
         # Skip null targets
         if proposal_set is None:
             continue
         if len(proposal_set) < n:
             return -1
         for i in range(n):
-            proposal_number = int(proposal_set[i]['file_name'].split('_')[0])
+            proposal_number = int(proposal_set[i]['file_name'].split('_')[0].split('/')[-1])
             if proposal_number == target_number:
                 true_positives += 1
             else:
@@ -44,11 +44,11 @@ def pr_curve(proposals: dict) -> float:
     score_match_pairs = []
     for targets, proposal_set in proposals.items():
         # Visualize precision-recall curve
-        target_number = int(targets.split('_')[0])
+        target_number = int(targets.split('_')[0].split('/')[-1])
         if proposal_set is None:
             continue
         for proposal in proposal_set:
-            proposal_number = int(proposal['file_name'].split('_')[0])
+            proposal_number = int(proposal['file_name'].split('_')[0].split('/')[-1])
             if proposal['score'] != 1:
                 score_match_pairs.append(np.array([proposal_number == target_number, proposal['score']]))
 
@@ -66,7 +66,7 @@ def pr_curve(proposals: dict) -> float:
     plt.title('Precision-Recall Curve')
     plt.xlim([0, 1])
     plt.ylim([0, 1])
-    plt.show()
+    # plt.show()
 
     plt.savefig("pr_curve")
 
