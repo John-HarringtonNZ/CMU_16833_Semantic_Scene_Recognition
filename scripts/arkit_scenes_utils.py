@@ -254,18 +254,25 @@ def get_target_volumes(target_annotation, target_traj_line):
 
     return target_volumes
 
-def get_proposal_volumes(proposal_annotation):
-    proposal_volumes = []
-    bbox_list = bboxes(proposal_annotation)
+def get_target_volumes(target_annotation, target_traj_line):
     
-    for bbox in bbox_list:
-        # TODO check if the below calculation is correct to get a volume
-        proposal_volume = abs(bbox[0]) * abs(bbox[1]) * abs(bbox[2])
-        proposal_volumes.append(proposal_volume)
+    # Decompose updated transform
+    _, cam_transformation_matrix = TrajStringToMatrix(target_traj_line) # venue to camera
+    cam_transformation_matrix = np.linalg.inv(cam_transformation_matrix) # camera to venue 
+    target_volumes = []
+    bboxes = bboxes(target_annotation)
+    for bbox in bboxes:
+        transformed_bbox = cam_transformation_matrix @ np.vstack((bbox.T, np.ones((1,8))))
+        #transform corners to be viewed from the camera frame
+        l = np.linalg.norm(bbox[1] - bbox[0])
+        w = np.linalg.norm(bbox[3] - bbox[0])
+        h = np.linalg.norm(bbox[4] - bbox[0])
+    
+        target_volume = l*w*h
+        target_volumes.append(target_volume)
+    target_volumes = np.asarray(target_volumes)
 
-    proposal_volumes = np.asarray(proposal_volumes)
-
-    return proposal_volumes
+    return target_volumes
 
 
 if __name__ == "__main__":
