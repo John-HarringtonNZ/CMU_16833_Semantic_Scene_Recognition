@@ -9,7 +9,7 @@ def precision_at_n(proposals: dict, n: int) -> float:
     false_positives = 0
     for targets, proposal_set in proposals.items():
         target_number = int(targets.split('_')[0])
-        # Compute precision and recall
+        # Skip null targets
         if proposal_set is None:
             continue
         for i in range(n):
