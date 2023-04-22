@@ -67,14 +67,13 @@ def volume_comparison_filter(target_file, proposals, target_traj_line):
     filtered_target_annotations, inds = filter_annotations_by_view_frustrum(target_annotation['data'], target_traj_line)
 
     # Get volumes of filtered_ target 
-    filtered_target_volumes = get_filtered_target_volumes(filtered_target_annotations, target_traj_line)
+    filtered_target_volumes = get_volumes(filtered_target_annotations, target_traj_line)
 
-    
     # Get volumes of proposal
     for proposal in proposals:
         proposal_annotation = get_scene_annotation(proposal['file_name'])
-        # proposal_volumes = get_proposal_volumes(proposal_annotation)
-
+        proposal_volumes = get_volumes(proposal_annotation)
+            
         # TODO how to compare with target_volume and proposal volumes
 
     return filtered_proposals

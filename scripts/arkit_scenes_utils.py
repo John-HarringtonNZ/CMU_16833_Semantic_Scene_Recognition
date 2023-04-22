@@ -235,7 +235,7 @@ def filter_annotations_by_view_frustrum(frame_id, target_annotations_data, targe
 
     return [target_annotations_data[i] for i in combined_filter], filtered_inds
 
-def get_filtered_target_volumes(target_annotation, target_traj_line):
+def get_volumes(target_annotation, target_traj_line):
     
     # Decompose updated transform
     _, cam_transformation_matrix = TrajStringToMatrix(target_traj_line) # venue to camera
