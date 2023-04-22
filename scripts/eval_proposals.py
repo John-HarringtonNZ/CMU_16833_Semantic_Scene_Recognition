@@ -87,7 +87,7 @@ def pr_curve(proposals: dict) -> float:
 
     return np.sum(precision_values) / len(precision_values)
 
-def evaluate_proposals(proposals: dict) -> None:
+def evaluate_proposals(filtered_proposals: dict) -> None:
     map = pr_curve(filtered_proposals)
     print("Mean Average Precision: ", map)
 
@@ -107,7 +107,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    f = open("scripts/" + args.filtered_proposals)
+    f = open(args.filtered_proposals)
     data = yaml.load(f, Loader=yaml.SafeLoader)
 
     filtered_proposals = {}
