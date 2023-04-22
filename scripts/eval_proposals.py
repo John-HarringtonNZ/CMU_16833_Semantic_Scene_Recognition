@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 import numpy as np
 
-def precision_at_n(proposals: dict, n: int):
+def precision_at_n(proposals: dict, n: int) -> float:
     true_positives = 0
     false_positives = 0
     for targets, proposal_set in proposals.items():
@@ -22,7 +22,7 @@ def precision_at_n(proposals: dict, n: int):
 
     return precision
 
-def pr_curve(proposals: dict):
+def pr_curve(proposals: dict) -> float:
     true_positives = 0
     false_positives = 0
     false_negatives = 0
@@ -74,7 +74,7 @@ def pr_curve(proposals: dict):
 
     return np.sum(precision_values) / len(precision_values)
 
-def evaluate_proposals(proposals: dict):
+def evaluate_proposals(proposals: dict) -> None:
     map = pr_curve(filtered_proposals)
     print("Mean Average Precision: ", map)
 
