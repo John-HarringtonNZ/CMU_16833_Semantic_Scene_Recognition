@@ -235,25 +235,42 @@ def filter_annotations_by_view_frustrum(frame_id, target_annotations_data, targe
 
     return [target_annotations_data[i] for i in combined_filter], filtered_inds
 
-def get_volumes(target_annotation, target_traj_line):
-    
+def get_scaled_volumes(target_annotation, target_traj_line):
     # Decompose updated transform
     _, cam_transformation_matrix = TrajStringToMatrix(target_traj_line) # venue to camera
     cam_transformation_matrix = np.linalg.inv(cam_transformation_matrix) # camera to venue 
+    
+    # Get volumes
     target_volumes = []
-    bboxes = bboxes(target_annotation)
-    for bbox in bboxes:
+    bbox_list = bboxes(target_annotation)
+    for bbox in bbox_list:
+        # Transform corners to be viewed from the camera frame
         transformed_bbox = cam_transformation_matrix @ np.vstack((bbox.T, np.ones((1,8))))
-        #transform corners to be viewed from the camera frame
-        l = np.linalg.norm(transformed_bbox[1] - transformed_bbox[0])
-        w = np.linalg.norm(transformed_bbox[3] - transformed_bbox[0])
-        h = np.linalg.norm(transformed_bbox[4] - transformed_bbox[0])
+        transformed_bbox = np.transpose(transformed_bbox[:3, :])
+        
+        # Get length, width, height 
+        l = np.linalg.norm(transformed_bbox[1,:] - transformed_bbox[0,:])
+        w = np.linalg.norm(transformed_bbox[3,:] - transformed_bbox[0,:])
+        h = np.linalg.norm(transformed_bbox[4,:] - transformed_bbox[0,:])
     
         target_volume = l*w*h
+        
         target_volumes.append(target_volume)
     target_volumes = np.asarray(target_volumes)
 
     return target_volumes
+
+def get_volumes(target_annotation):
+    target_volumes = []
+    for label_info in annotation["data"]:
+        scale = np.array(label_info["segments"]["obbAligned"]["axesLengths"]).reshape(-1, 3)
+        scales = [i / 2 for i in scale.reshape(-1,3)]
+        l, h, w = scales
+        target_volume = l*h*w
+        target_volumes.append(target_volume)
+
+    target_volumes = np.asarray(target_volumes)
+    return target_volumes 
 
 
 if __name__ == "__main__":
@@ -296,3 +313,8 @@ if __name__ == "__main__":
                 image, 
                 traj[i], 
                 intrinsics, sky_direction)
+            
+            filtered_target_annotations, inds = filter_annotations_by_view_frustrum(image_name, annotation['data'], traj[i])
+            
+            filtered_target_volumes = get_volumes(annotation, traj[i])
+            
