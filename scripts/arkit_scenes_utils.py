@@ -222,9 +222,16 @@ def get_target_volumes(target_annotation, target_traj_line):
         cam_transformation_matrix = np.linalg.inv(cam_transformation_matrix) # camera to venue 
         
         # each corners in bbox should be viewed from camera frame 
-        target_bbox = cam_transformation_matrix @ bbox
+        ones_col = np.ones((8,1))
+        transformed_bbox = np.hstack((bbox, ones_col))
+        target_bbox = []
+        for i in range(transformed_bbox.shape[0]):
+            transformed_corner = cam_transformation_matrix @ np.transpose(bbox[i,:])
+            target_bbox.append(transformed_corner[3,:])
+        target_bbox = np.asarray(target_bbox)
         # TODO check if the below calculation is correct to get a volume
-        target_volume = abs(target_bbox[0]) * abs(target_bbox[1]) * abs(target_bbox[2])
+        target_volume = 
+        # target_volume = abs(target_bbox[0]) * abs(target_bbox[1]) * abs(target_bbox[2])
         target_volumes.append(target_volume)
 
     target_volumes = np.asarray(target_volumes)
