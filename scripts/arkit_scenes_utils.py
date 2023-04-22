@@ -245,9 +245,9 @@ def get_filtered_target_volumes(target_annotation, target_traj_line):
     for bbox in bboxes:
         transformed_bbox = cam_transformation_matrix @ np.vstack((bbox.T, np.ones((1,8))))
         #transform corners to be viewed from the camera frame
-        l = np.linalg.norm(bbox[1] - bbox[0])
-        w = np.linalg.norm(bbox[3] - bbox[0])
-        h = np.linalg.norm(bbox[4] - bbox[0])
+        l = np.linalg.norm(transformed_bbox[1] - transformed_bbox[0])
+        w = np.linalg.norm(transformed_bbox[3] - transformed_bbox[0])
+        h = np.linalg.norm(transformed_bbox[4] - transformed_bbox[0])
     
         target_volume = l*w*h
         target_volumes.append(target_volume)
