@@ -9,7 +9,6 @@ Proposed Filter Types:
 
 ---Filter based on sizes of objects
     
-
 ---Filter based on color of objects
 
 """
@@ -52,7 +51,28 @@ def identity_filter(target_file, proposals, target_traj_line):
     target_file -> string for file location
     proposals -> [Dict{'file_name':xx.png, 'score': 0.9}]
     """
+
     return proposals
+
+def volume_comparison_filter(target_file, proposals, target_traj_line):
+    """
+    target_file -> string for file location
+    proposals -> [Dict{'file_name':xx.png, 'score': 0.9}]
+    """
+    # Get annotation file
+    target_annotation = get_scene_annotation(target_file)
+
+    # Get volume of target 
+    target_volumes = get_target_volumes(target_annotation, target_traj_line)
+
+    # Get volume of proposal
+    for proposal in proposals:
+        proposal_annotation = get_scene_annotation(proposal['file_name'])
+        proposal_volumes = get_proposal_volumes(proposal_annotation)
+
+        # TODO how to compare with target_volume and proposal volumes
+
+    return filtered_proposals
 
 def semantic_count_filter(target_file, proposals, target_traj_line):
     """

@@ -212,6 +212,39 @@ def filter_annotations_by_view_frustrum(target_annotations_data, target_traj_lin
 
     return [target_annotations_data[i] for i in filtered_inds], filtered_inds
 
+def get_target_volumes(target_annotation, target_traj_line):
+    target_volumes = []
+    bbox_list = bboxes(target_annotation)
+    for bbox in bbox_list:
+        
+        # Decompose updated transform
+        _, cam_transformation_matrix = TrajStringToMatrix(target_traj_line) # venue to camera
+        cam_transformation_matrix = np.linalg.inv(cam_transformation_matrix) # camera to venue 
+        
+        # each corners in bbox should be viewed from camera frame 
+        target_bbox = cam_transformation_matrix @ bbox
+        # TODO check if the below calculation is correct to get a volume
+        target_volume = abs(target_bbox[0]) * abs(target_bbox[1]) * abs(target_bbox[2])
+        target_volumes.append(target_volume)
+
+    target_volumes = np.asarray(target_volumes)
+
+    return target_volumes
+
+def get_proposal_volumes(proposal_annotation):
+    proposal_volumes = []
+    bbox_list = bboxes(proposal_annotation)
+    
+    for bbox in bbox_list:
+        # TODO check if the below calculation is correct to get a volume
+        proposal_volume = abs(bbox[0]) * abs(bbox[1]) * abs(bbox[2])
+        proposal_volumes.append(proposal_volume)
+
+    proposal_volumes = np.asarray(proposal_volumes)
+
+    return proposal_volumes
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
