@@ -85,7 +85,6 @@ def TrajStringToMatrix(traj_str):
     ts = tokens[0]
     # Rotation in angle axis
     angle_axis = [float(tokens[1]), float(tokens[2]), float(tokens[3])]
-    print(angle_axis)
     r_w_to_p = convert_angle_axis_to_matrix3(np.asarray(angle_axis))
     # Translation
     t_w_to_p = np.asarray([float(tokens[4]), float(tokens[5]), float(tokens[6])])
@@ -146,7 +145,7 @@ def transform_3dod(scene_annotations, image_file, traj_line, intrinsics_file, sk
     centers = []
     for label_info in annotation["data"]:
         centers.append(np.array(label_info["segments"]["obbAligned"]["centroid"]).reshape(-1, 3))
-    centers = bboxes3d.reshape(-1,3)
+    centers = np.array(centers).reshape(-1,3)
 
     # Decompose updated transform
     _, cam_transformation_matrix = TrajStringToMatrix(traj_line) # Should be venue to camera
@@ -195,38 +194,93 @@ def transform_3dod(scene_annotations, image_file, traj_line, intrinsics_file, sk
     cv2.waitKey()
     return
 
+def filter_annotations_by_view_frustrum(target_annotations_data, target_traj_line):
+
+    centers = []
+    for label_info in target_annotations_data:
+        centers.append(np.array(label_info["segments"]["obbAligned"]["centroid"]).reshape(-1, 3))
+    pts = np.array(centers).reshape(-1,3)
+
+    # Decompose updated transform
+    _, cam_transformation_matrix = TrajStringToMatrix(target_traj_line) # Should be venue to camera
+    cam_transformation_matrix = np.linalg.inv(cam_transformation_matrix)
+
+    # Transform points in 3D
+    transformed_pts = np.dot(cam_transformation_matrix, np.hstack([pts, np.ones((pts.shape[0],1))]).T).T
+
+    filtered_inds = np.where(transformed_pts[:,2] >=0)[0].tolist()
+
+    return [target_annotations_data[i] for i in filtered_inds], filtered_inds
+
+def get_target_volumes(target_annotation, target_traj_line):
+    target_volumes = []
+    bbox_list = bboxes(target_annotation)
+    for bbox in bbox_list:
+        
+        # Decompose updated transform
+        _, cam_transformation_matrix = TrajStringToMatrix(target_traj_line) # venue to camera
+        cam_transformation_matrix = np.linalg.inv(cam_transformation_matrix) # camera to venue 
+        
+        # each corners in bbox should be viewed from camera frame 
+        target_bbox = cam_transformation_matrix @ bbox
+        # TODO check if the below calculation is correct to get a volume
+        target_volume = abs(target_bbox[0]) * abs(target_bbox[1]) * abs(target_bbox[2])
+        target_volumes.append(target_volume)
+
+    target_volumes = np.asarray(target_volumes)
+
+    return target_volumes
+
+def get_proposal_volumes(proposal_annotation):
+    proposal_volumes = []
+    bbox_list = bboxes(proposal_annotation)
+    
+    for bbox in bbox_list:
+        # TODO check if the below calculation is correct to get a volume
+        proposal_volume = abs(bbox[0]) * abs(bbox[1]) * abs(bbox[2])
+        proposal_volumes.append(proposal_volume)
+
+    proposal_volumes = np.asarray(proposal_volumes)
+
+    return proposal_volumes
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     video_ids = get_data(n_scenes=10)
 
-    # for video_id in video_ids:
-    #     scene_dir = f"../ARKitScenes/data/3dod/Training/{video_id}/"
-    #     frame_folder = scene_dir + f"{video_id}_frames/lowres_wide"
-    #     depth_images = sorted(glob.glob(os.path.join(frame_folder, "*.png")))
-    #     frame_ids = [os.path.basename(x) for x in depth_images]
-    #     frame_ids = [x.split(".png")[0].split("_")[1] for x in frame_ids]
-    #     video_id = frame_folder.split('/')[-3]
-    #     frame_ids = [float(x) for x in frame_ids]
-    #     frame_ids.sort()
+    for video_id in video_ids:
+        scene_dir = f"../ARKitScenes/data/3dod/Training/{video_id}/"
+        frame_folder = scene_dir + f"{video_id}_frames/lowres_wide"
+        depth_images = sorted(glob.glob(os.path.join(frame_folder, "*.png")))
+        frame_ids = [os.path.basename(x) for x in depth_images]
+        frame_ids = [x.split(".png")[0].split("_")[1] for x in frame_ids]
+        video_id = frame_folder.split('/')[-3]
+        frame_ids = [float(x) for x in frame_ids]
+        frame_ids.sort()
 
-    #     # Get images in relevant directory
-    #     bbox_annotations = scene_dir + f"{video_id}_3dod_annotation.json"
-    #     images = sorted(os.listdir(scene_dir + f"{video_id}_frames/lowres_wide"))
-    #     intrinsics = sorted(os.listdir(scene_dir + f"{video_id}_frames/lowres_wide_intrinsics"))
-    #     traj_file = scene_dir + f"{video_id}_frames/lowres_wide.traj"
-    #     traj = open(traj_file, "r").readlines()
-    #     metadata = pd.read_csv("../ARKitScenes/data/3dod/metadata.csv")
-    #     # Get valid sky_direction
-    #     sky_direction = metadata.loc[metadata['video_id'] == int(video_id), 'sky_direction'].iloc[0]
+        # Get images in relevant directory
+        bbox_annotations = scene_dir + f"{video_id}_3dod_annotation.json"
+        images = sorted(os.listdir(scene_dir + f"{video_id}_frames/lowres_wide"))
+        intrinsics = sorted(os.listdir(scene_dir + f"{video_id}_frames/lowres_wide_intrinsics"))
+        traj_file = scene_dir + f"{video_id}_frames/lowres_wide.traj"
+        traj = open(traj_file, "r").readlines()
+        metadata = pd.read_csv("../ARKitScenes/data/3dod/metadata.csv")
+        # Get valid sky_direction
+        sky_direction = metadata.loc[metadata['video_id'] == int(video_id), 'sky_direction'].iloc[0]
 
-    #     for i in range(len(traj)):
+        for i in range(len(traj)):
 
-    #         intrinsics = scene_dir + f"{video_id}_frames/lowres_wide_intrinsics/" + video_id + "_" + "{:.3f}".format(frame_ids[i]) + ".pincam"
-    #         image = scene_dir + f"{video_id}_frames/lowres_wide/" + video_id + "_" + "{:.3f}".format(frame_ids[i]) + ".png"
+            intrinsics = scene_dir + f"{video_id}_frames/lowres_wide_intrinsics/" + video_id + "_" + "{:.3f}".format(frame_ids[i]) + ".pincam"
+            image = scene_dir + f"{video_id}_frames/lowres_wide/" + video_id + "_" + "{:.3f}".format(frame_ids[i]) + ".png"
 
-    #         transform_3dod(
-    #             bbox_annotations, 
-    #             image, 
-    #             traj[i], 
-    #             intrinsics, sky_direction)
+
+            annotation = load_json(bbox_annotations)
+            filter_annotations_by_view_frustrum(annotation['data'], traj[i])
+
+            transform_3dod(
+                bbox_annotations, 
+                image, 
+                traj[i], 
+                intrinsics, sky_direction)
