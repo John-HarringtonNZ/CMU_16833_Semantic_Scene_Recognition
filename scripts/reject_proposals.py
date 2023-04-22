@@ -18,10 +18,15 @@ from arkit_scenes_utils import *
 from collections import Counter
 import yaml
 
+CACHED_SCENE_ANNOTATIONS = {}
+
 def get_scene_annotation(proposal_file):
-    video_id = proposal_file.split("_")[0]
-    annotation_file = f"../ARKitScenes/data/3dod/Training/{video_id}/{video_id}_3dod_annotation.json"
-    return load_json(annotation_file)
+    video_id = get_video_id(proposal_file)
+    if video_id not in CACHED_SCENE_ANNOTATIONS:
+        annotation_file = f"../ARKitScenes/data/3dod/Training/{video_id}/{video_id}_3dod_annotation.json"
+        annotation = load_json(annotation_file)
+        CACHED_SCENE_ANNOTATIONS[video_id] = annotation
+    return CACHED_SCENE_ANNOTATIONS[video_id]
 
 def get_scene_semantic_counts(annotation_data):
     """
@@ -31,8 +36,7 @@ def get_scene_semantic_counts(annotation_data):
     return Counter(labels)
 
 def get_traj_line(target_file):
-
-    video_id = target_file.split("_")[0]
+    video_id = get_video_id(target_file)
     truncated_frame_time = float(".".join(target_file.split("_")[1].split(".")[:2])[:-1])
 
     traj_file = f"../ARKitScenes/data/3dod/Training/{video_id}/{video_id}_frames/lowres_wide.traj"
@@ -92,7 +96,7 @@ def semantic_count_filter(target_file, proposals, target_traj_line):
     target_annotation = get_scene_annotation(target_file)
 
     # Filter target by frustrum
-    filtered_target_annotations, inds = filter_annotations_by_view_frustrum(target_annotation['data'], target_traj_line)
+    filtered_target_annotations, inds = filter_annotations_by_view_frustrum(target_file, target_annotation['data'], target_traj_line)
 
     # Get Semantic scene count
     target_semantic_count = get_scene_semantic_counts(filtered_target_annotations)
@@ -113,6 +117,62 @@ def semantic_count_filter(target_file, proposals, target_traj_line):
                 break
         
         if all_good:
+            filtered_proposals.append(proposal)
+
+    return filtered_proposals
+
+def bbox_center_alignment_filter(target_file, proposals, target_traj_line, thresh=0.1):
+    target_annotation = get_scene_annotation(target_file)
+    filtered_target_annotations, _ = filter_annotations_by_view_frustrum(target_file, target_annotation['data'], target_traj_line)
+    if len(filtered_target_annotations) <= 1:
+        # It doesn't make sense to run this filter if there are 1 or fewer bounding boxes in view
+        return proposals
+    target_bbox_info = bbox_labeled_centers(filtered_target_annotations)
+    target_labels = [t['label'] for t in target_bbox_info]
+    target_centers = np.array([t['center'].flatten() for t in target_bbox_info])
+    filtered_proposals = []
+
+    for proposal in proposals:
+        proposal_annotation = get_scene_annotation(proposal['file_name'])
+        proposal_bbox_info = bbox_labeled_centers(proposal_annotation['data'])
+
+        # Find the least frequent proposal label that is present in target_labels to use as the anchor
+        proposal_labels = [p['label'] for p in proposal_bbox_info]
+        proposal_centers = np.array([p['center'].flatten() for p in proposal_bbox_info])
+        proposal_label_counts = Counter(proposal_labels).most_common()
+        proposal_label_counts.reverse()
+        anchor_label = None
+        for label,_ in proposal_label_counts:
+            if label in target_labels:
+                anchor_label = label
+                break
+        if anchor_label is None:
+            continue
+        anchor_idx = [i for i,label in enumerate(proposal_labels) if label == anchor_label]
+        target_anchor_idx = target_labels.index(anchor_label)
+        target_anchor = target_centers[target_anchor_idx]
+        transformed_target_centers = target_centers - target_anchor
+        min_total_error = np.inf
+        is_good = True
+        for ai in anchor_idx:
+            proposal_anchor = proposal_centers[ai]
+            transformed_proposal_centers = proposal_centers - proposal_anchor
+            curr_total_error = 0.0
+            for ti in range(len(transformed_target_centers)):
+                if ti == target_anchor_idx:
+                    continue
+                # Get all indices of proposal bboxes with matching labels 
+                proposal_idx = [i for i,label in enumerate(proposal_labels) if label == target_labels[ti]]
+                # Compute min L2 distance from target point to any of the proposal points
+                if not proposal_idx:
+                    # This means we have target labels that do not exist in proposal labels (should be filtered out by semantic counts filter)
+                    curr_total_error = np.inf
+                    is_good = False
+                    break
+                min_error = np.min(np.linalg.norm(transformed_proposal_centers[proposal_idx] - transformed_target_centers[ti], axis=1))
+                curr_total_error += min_error
+            min_total_error = min(min_total_error, curr_total_error)
+        if min_total_error < thresh and is_good:
             filtered_proposals.append(proposal)
 
     return filtered_proposals
@@ -151,7 +211,8 @@ if __name__ == "__main__":
 
     filters = [
         identity_filter,
-        semantic_count_filter
+        semantic_count_filter,
+        bbox_center_alignment_filter
     ]
 
     filtered_proposals = {}

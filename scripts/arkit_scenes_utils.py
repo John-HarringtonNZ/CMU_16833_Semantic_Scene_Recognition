@@ -17,6 +17,8 @@ from dataset import ARKitScenesDataset
 sys.path.append(os.path.abspath("../ARKitScenes/threedod/benchmark_scripts/"))
 from rectify_im import decide_pose, rotate_pose
 
+def get_video_id(file_name):
+    return file_name.split("_")[0].split("/")[-1]
 
 def get_data(n_scenes=1):
 
@@ -105,6 +107,14 @@ def convert_angle_axis_to_matrix3(angle_axis):
 def st2_camera_intrinsics(filename):
     w, h, fx, fy, hw, hh = np.loadtxt(filename)
     return np.asarray([[fx, 0, hw], [0, fy, hh], [0, 0, 1]])
+
+def bbox_labeled_centers(annotation_data):
+    bbox_info = []
+    for label_info in annotation_data:
+        center = np.array(label_info["segments"]["obbAligned"]["centroid"]).reshape(-1, 3)
+        label = label_info['label']
+        bbox_info.append({'center': center, 'label': label})
+    return bbox_info
 
 def bboxes(annotation):
     bbox_list = []
@@ -195,9 +205,8 @@ def transform_3dod(scene_annotations, image_file, traj_line, intrinsics_file, sk
     return
 
 def get_intrinsics(image_file_name):
-
-    video_id = image_file_name.split("_")[0]
-    file_name = image_file_name[:-4]
+    video_id = get_video_id(image_file_name)
+    file_name = image_file_name.split('/')[-1][:-4]
     intrinsics_file = f"../ARKitScenes/data/3dod/Training/{video_id}/{video_id}_frames/lowres_wide_intrinsics/{file_name}.pincam"
 
     return st2_camera_intrinsics(intrinsics_file)
