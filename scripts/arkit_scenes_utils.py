@@ -45,6 +45,8 @@ def load_json(js_path):
         json_data = json.load(f)
     return json_data
 
+
+
 def compute_box_3d(scale, transform, rotation):
     scales = [i / 2 for i in scale]
     l, h, w = scales
@@ -213,30 +215,26 @@ def filter_annotations_by_view_frustrum(target_annotations_data, target_traj_lin
     return [target_annotations_data[i] for i in filtered_inds], filtered_inds
 
 def get_target_volumes(target_annotation, target_traj_line):
+    
+    # Decompose updated transform
+    _, cam_transformation_matrix = TrajStringToMatrix(target_traj_line) # venue to camera
+    cam_transformation_matrix = np.linalg.inv(cam_transformation_matrix) # camera to venue 
     target_volumes = []
-    bbox_list = bboxes(target_annotation)
-    for bbox in bbox_list:
-        
-        # Decompose updated transform
-        _, cam_transformation_matrix = TrajStringToMatrix(target_traj_line) # venue to camera
-        cam_transformation_matrix = np.linalg.inv(cam_transformation_matrix) # camera to venue 
-        
-        # each corners in bbox should be viewed from camera frame 
-        ones_col = np.ones((8,1))
-        transformed_bbox = np.hstack((bbox, ones_col))
-        target_bbox = []
-        for i in range(transformed_bbox.shape[0]):
-            transformed_corner = cam_transformation_matrix @ np.transpose(bbox[i,:])
-            target_bbox.append(transformed_corner[3,:])
-        target_bbox = np.asarray(target_bbox)
-        # TODO check if the below calculation is correct to get a volume
-        target_volume = 
-        # target_volume = abs(target_bbox[0]) * abs(target_bbox[1]) * abs(target_bbox[2])
+    bboxes = bboxes(target_annotation)
+    for bbox in bboxes:
+        transformed_bbox = cam_transformation_matrix @ np.vstack((bbox.T, np.ones((1,8))))
+        #transform corners to be viewed from the camera frame
+        l = np.linalg.norm(bbox[1] - bbox[0])
+        w = np.linalg.norm(bbox[3] - bbox[0])
+        h = np.linalg.norm(bbox[4] - bbox[0])
+    
+        target_volume = l*w*h
         target_volumes.append(target_volume)
-
     target_volumes = np.asarray(target_volumes)
 
     return target_volumes
+
+
 
 def get_proposal_volumes(proposal_annotation):
     proposal_volumes = []
