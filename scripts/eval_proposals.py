@@ -30,7 +30,7 @@ def precision_at_n(proposals: dict, n: int) -> float:
 
     return precision
 
-def pr_curve(proposals: dict) -> float:
+def get_score_match_pairs(proposals: dict) -> np.ndarray:
     # Intialize counter
     true_positives = 0
     false_positives = 0
@@ -55,6 +55,10 @@ def pr_curve(proposals: dict) -> float:
     # Sort matches - could be used for optimization later if needed
     score_match_pairs = sorted(score_match_pairs, key=lambda x: x[1], reverse=True)
     score_match_pairs = np.array(score_match_pairs)
+    return score_match_pairs
+
+def pr_curve(proposals: dict) -> float:
+    score_match_pairs = get_score_match_pairs(proposals)
 
     # Compute precision recall curve
     precision, recall, _ = precision_recall_curve(score_match_pairs[:,0], score_match_pairs[:,1])
