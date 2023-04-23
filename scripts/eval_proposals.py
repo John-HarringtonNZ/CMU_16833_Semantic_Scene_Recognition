@@ -48,7 +48,7 @@ def get_score_match_pairs(proposals: dict) -> np.ndarray:
 
     # Stores all target-proposal score pairs
     score_match_pairs = []
-    for targets, proposal_set in proposals.items():
+    for targets, proposal_set in tqdm(proposals.items()):
         # Visualize precision-recall curve
         target_number = int(targets.split('_')[0].split('/')[-1])
         if proposal_set is None:
@@ -76,9 +76,10 @@ def pr_curve(proposals: dict) -> float:
     plt.title('Precision-Recall Curve')
     plt.xlim([0, 1])
     plt.ylim([0, 1])
+    plt.savefig("pr_curve")
     # plt.show()
 
-    plt.savefig("pr_curve")
+    
 
     map = average_precision_score(score_match_pairs[:,0], score_match_pairs[:,1])
 

@@ -13,7 +13,7 @@ if __name__ == '__main__':
   )
   args = parser.parse_args()
 
-  plt.figure()
+  fig = plt.figure(figsize=(20,12))
   for fname in args.yaml_files:
     print(f'plotting pr curve for {fname}')
     f = open(fname)
@@ -33,10 +33,14 @@ if __name__ == '__main__':
       prec_n, n_targets = precision_at_n(filtered_proposals, n)
       print(f'Precision at {n}: {prec_n} ({n_targets} targets)')
 
-  plt.xlabel('Recall')
-  plt.ylabel('Precision')
-  plt.title('Precision-Recall Curve')
+  plt.xlabel('Recall', fontsize=18)
+  plt.ylabel('Precision', fontsize=18)
+  plt.title('Precision-Recall Curve', fontsize=18)
+  plt.xticks(fontsize=14)
+  plt.yticks(fontsize=14)
   plt.xlim([0, 1])
   plt.ylim([0, 1])
-  plt.legend()
+  plt.legend(fontsize=18)
+  fig.savefig('pr_curve.png')
+
   plt.show()
