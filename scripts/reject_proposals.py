@@ -233,7 +233,7 @@ if __name__ == "__main__":
     filters = [
         identity_filter,
         semantic_count_filter,
-        # bbox_center_alignment_filter
+        bbox_center_alignment_filter
     ]
 
     filtered_proposals = {}
