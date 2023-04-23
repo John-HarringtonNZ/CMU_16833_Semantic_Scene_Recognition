@@ -132,25 +132,39 @@ def semantic_count_filter(target_file, proposals, target_traj_line, add_noise=Tr
 
     return filtered_proposals
 
-def bbox_center_alignment_filter(target_file, proposals, target_traj_line, noise_std=0.1):
+def bbox_center_alignment_filter(target_file, proposals, target_traj_line, noise_std=0.1, dropout_prob=0.1):
     target_annotation = get_scene_annotation(target_file)
     filtered_target_annotations, _ = filter_annotations_by_view_frustrum(target_file, target_annotation['data'], target_traj_line)
     if len(filtered_target_annotations) <= 1:
         # It doesn't make sense to run this filter if there are 1 or fewer bounding boxes in view
         return proposals
-    target_bbox_info = bbox_labeled_centers(filtered_target_annotations)
+    target_bbox_info_unfiltered = bbox_labeled_centers(filtered_target_annotations)
+
+    # Apply target dropout
+    target_bbox_info = []
+    for t in target_bbox_info_unfiltered:
+        if np.random.rand() >= dropout_prob:
+            target_bbox_info.append(t)
     target_labels = [t['label'] for t in target_bbox_info]
     target_centers = np.array([t['center'].flatten() for t in target_bbox_info])
+    # Apply target geometric noise
     target_centers += np.random.normal(0, noise_std, size=target_centers.shape)
     filtered_proposals = []
 
     for proposal in proposals:
         proposal_annotation = get_scene_annotation(proposal['file_name'])
-        proposal_bbox_info = bbox_labeled_centers(proposal_annotation['data'])
+        proposal_bbox_info_unfiltered = bbox_labeled_centers(proposal_annotation['data'])
+
+        # Apply proposal dropout
+        proposal_bbox_info = []
+        for p in proposal_bbox_info_unfiltered:
+            if np.random.rand() >= dropout_prob:
+                proposal_bbox_info.append(p)
 
         # Find the least frequent proposal label that is present in target_labels to use as the anchor
         proposal_labels = [p['label'] for p in proposal_bbox_info]
         proposal_centers = np.array([p['center'].flatten() for p in proposal_bbox_info])
+        # Apply proposal geometric noise
         proposal_centers += np.random.normal(0, noise_std, size=proposal_centers.shape)
         proposal_label_counts = Counter(proposal_labels).most_common()
         proposal_label_counts.reverse()
