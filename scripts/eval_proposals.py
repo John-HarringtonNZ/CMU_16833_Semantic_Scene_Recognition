@@ -10,14 +10,17 @@ def precision_at_n(proposals: dict, n: int) -> float:
     true_positives = 0
     false_positives = 0
 
+    # Number of targets used
+    target_count = 0
+
     # Loop through all targets and proposals to accumulate tp and fp
     for targets, proposal_set in proposals.items():
         target_number = int(targets.split('_')[0].split('/')[-1])
         # Skip null targets
-        if proposal_set is None:
+        if proposal_set is None or len(proposal_set) < n:
             continue
-        if len(proposal_set) < n:
-            return -1
+
+        target_count += 1
         for i in range(n):
             proposal_number = int(proposal_set[i]['file_name'].split('_')[0].split('/')[-1])
             if proposal_number == target_number:
@@ -26,9 +29,12 @@ def precision_at_n(proposals: dict, n: int) -> float:
                 false_positives += 1
 
     # Calculate precision
-    precision = true_positives / (true_positives + false_positives)
+    if target_count == 0:
+        precision = 0
+    else:
+        precision = true_positives / (true_positives + false_positives)
 
-    return precision
+    return precision, target_count
 
 def get_score_match_pairs(proposals: dict) -> np.ndarray:
     # Intialize counter

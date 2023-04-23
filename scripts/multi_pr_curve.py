@@ -1,8 +1,8 @@
 import argparse
 import yaml
 import matplotlib.pyplot as plt
-from sklearn.metrics import precision_recall_curve
-from eval_proposals import get_score_match_pairs
+from sklearn.metrics import precision_recall_curve, average_precision_score
+from eval_proposals import get_score_match_pairs, precision_at_n
 
 
 
@@ -25,6 +25,13 @@ if __name__ == '__main__':
 
     precision, recall, _ = precision_recall_curve(score_match_pairs[:,0], score_match_pairs[:,1])
     plt.plot(recall, precision, label=fname.split('.')[0].split('/')[-1])
+
+    print(f'mAP: {average_precision_score(score_match_pairs[:,0], score_match_pairs[:,1])}')
+
+    print('Precision @ N:')
+    for n in [1, 3, 5, 10, 20, 50, 100]:
+      prec_n, n_targets = precision_at_n(filtered_proposals, n)
+      print(f'Precision at {n}: {prec_n} ({n_targets} targets)')
 
   plt.xlabel('Recall')
   plt.ylabel('Precision')
