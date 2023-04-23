@@ -87,7 +87,7 @@ def volume_comparison_filter(target_file, proposals, target_traj_line):
 
     return filtered_proposals
 
-def semantic_count_filter(target_file, proposals, target_traj_line, add_noise=True, noise_level=0.1):
+def semantic_count_filter(target_file, proposals, target_traj_line, add_noise=True, noise_threshold=0.1):
     """
     target_file -> string for file location
     proposals -> [Dict{'file_name':xx.png, 'score': 0.9}]
@@ -105,7 +105,9 @@ def semantic_count_filter(target_file, proposals, target_traj_line, add_noise=Tr
     # Apply target dropout
     if add_noise:
         for item in target_semantic_count.keys():
-            target_semantic_count[item] -= int(noise_level * random() * target_semantic_count[item])
+            rand_n = random.random()
+            to_remove = min(noise_threshold // rand_n, target_semantic_count[item])
+            target_semantic_count[item] -= to_remove
 
     filtered_proposals = []
     for proposal in proposals:
@@ -117,7 +119,9 @@ def semantic_count_filter(target_file, proposals, target_traj_line, add_noise=Tr
         # Apply proposal dropout
         if add_noise:
             for item in proposal_semantic_count.keys():
-                proposal_semantic_count[item] -= int(noise_level * random() * proposal_semantic_count[item])
+                rand_n = random.random()
+                to_remove = min(noise_threshold // rand_n, proposal_semantic_count[item])
+                proposal_semantic_count[item] -= to_remove
 
         # Check if semantic count is feasible 
         all_good = True
@@ -213,6 +217,9 @@ if __name__ == "__main__":
         "--proposals",type=str, default='../DBoW2/build/output.yaml'
     )
     parser.add_argument(
+        "--output_file",type=str, default='filtered_proposals.yaml'
+    )
+    parser.add_argument(
         "--memory-dir", type=str, default='ARKitScenes/memory'
     )
     parser.add_argument(
@@ -226,12 +233,12 @@ if __name__ == "__main__":
     filters = [
         identity_filter,
         semantic_count_filter,
-        bbox_center_alignment_filter
+        # bbox_center_alignment_filter
     ]
 
     filtered_proposals = {}
     for target, proposals in data.items():
         filtered_proposals[target] = proposal_filter(target, proposals, filters)
 
-    with open(f"filtered_proposals.yaml", 'w') as outfile:
+    with open(args.output_file, 'w') as outfile:
         yaml.dump(filtered_proposals, outfile)
