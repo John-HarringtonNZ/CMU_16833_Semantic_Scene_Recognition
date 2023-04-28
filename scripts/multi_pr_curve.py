@@ -35,9 +35,9 @@ if __name__ == '__main__':
 
   plt.xlabel('Recall', fontsize=18)
   plt.ylabel('Precision', fontsize=18)
-  plt.title('Precision-Recall Curve', fontsize=18)
-  plt.xticks(fontsize=14)
-  plt.yticks(fontsize=14)
+  plt.title('Precision-Recall Curve', fontsize=20)
+  plt.xticks(fontsize=16)
+  plt.yticks(fontsize=16)
   plt.xlim([0, 1])
   plt.ylim([0, 1])
   plt.legend(fontsize=18)
