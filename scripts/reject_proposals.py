@@ -68,22 +68,22 @@ def volume_comparison_filter(target_file, proposals, target_traj_line):
     target_annotation = get_scene_annotation(target_file)
 
     # Filter target by frustrum
-
     filtered_target_annotations, inds = filter_annotations_by_view_frustrum(target_annotation['data'], target_traj_line)
 
     # Get volumes of filtered_ target 
-    # filtered_target_volumes = get_scaled_volumes(filtered_target_annotations, target_traj_line)
+    filtered_target_volumes = get_volumes(filtered_target_annotations, target_traj_line)     # DEPRECATED: filtered_target_volumes = get_scaled_volumes(filtered_target_annotations, target_traj_line)
+    set_filtered_target_volumes = set(filtered_target_volumes)
 
-    filtered_target_volumes = get_volumes(filtered_target_annotations, target_traj_line)
-
-
-    print(filtered_target_volumes)
-    # Get volumes of proposal
+    filtered_proposals = []
     for proposal in proposals:
         proposal_annotation = get_scene_annotation(proposal['file_name'])
-        proposal_volumes = get_volumes(proposal_annotation)
-        print(proposal_volumes)
+        proposal_volumes = get_volumes(proposal_annotation['data'])
+        set_proposal_volumes = set(proposal_volumes)
         # TODO how to compare with target_volume and proposal volumes
+        if set_filtered_target_volumes.issubset(set_proposal_volumes):
+            filtered_proposals.append(proposal)
+        else:
+            continue
 
     return filtered_proposals
 
@@ -246,8 +246,9 @@ if __name__ == "__main__":
 
     filters = [
         identity_filter,
-        semantic_count_filter,
-        bbox_center_alignment_filter
+        volume_comparison_filter
+        # semantic_count_filter,
+        # bbox_center_alignment_filter
     ]
 
     filtered_proposals = {}

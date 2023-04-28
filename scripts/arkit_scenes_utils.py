@@ -269,17 +269,17 @@ def get_scaled_volumes(target_annotation, target_traj_line):
 
     return target_volumes
 
-def get_volumes(target_annotation):
-    target_volumes = []
-    for label_info in annotation["data"]:
+def get_volumes(annotation_data):
+    volumes = []
+    for label_info in annotation_data:
         scale = np.array(label_info["segments"]["obbAligned"]["axesLengths"]).reshape(-1, 3)
         scales = [i / 2 for i in scale.reshape(-1,3)]
         l, h, w = scales
-        target_volume = l*h*w
-        target_volumes.append(target_volume)
+        volume = l*h*w
+        volumes.append(volume)
 
-    target_volumes = np.asarray(target_volumes)
-    return target_volumes 
+    volumes = np.asarray(volumes)
+    return volumes 
 
 
 if __name__ == "__main__":
