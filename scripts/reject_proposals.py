@@ -59,7 +59,7 @@ def identity_filter(target_file, proposals, target_traj_line):
 
     return proposals
 
-def volume_comparison_filter(target_file, proposals, target_traj_line):
+def volume_comparison_filter(target_file, proposals, target_traj_line, add_noise=True, noise_threshold=0.1):
     """
     target_file -> string for file location
     proposals -> [Dict{'file_name':xx.png, 'score': 0.9}]
@@ -72,13 +72,28 @@ def volume_comparison_filter(target_file, proposals, target_traj_line):
 
     # Get volumes of filtered_ target 
     filtered_target_volumes = get_volumes(filtered_target_annotations)     
-    set_filtered_target_volumes = set(filtered_target_volumes)
+
+    # Apply target dropout
+    if add_noise:
+        before_dropout_length= len(filtered_target_volumes)
+        num_to_remove = int(noise_threshold*before_dropout_length)
+        indices_to_remove = random.sample(range(before_dropout_length), num_to_remove)
+        filtered_target_volumes = np.delete(filtered_target_volumes, indices_to_remove)    
     
+    set_filtered_target_volumes = set(filtered_target_volumes)
     # Get volumes of proposals and check if filtered_target_volumes are subset of proposal_volumes among proposals
     filtered_proposals = []
     for proposal in proposals:
         proposal_annotation = get_scene_annotation(proposal['file_name'])
         proposal_volumes = get_volumes(proposal_annotation['data'])        
+        
+        # Apply proposal dropout
+        if add_noise:
+            before_dropout_length= len(proposal_volumes)
+            num_to_remove = int(noise_threshold*before_dropout_length)
+            indices_to_remove = random.sample(range(before_dropout_length), num_to_remove)
+            proposal_volumes = np.delete(proposal_volumes, indices_to_remove)    
+                
         set_proposal_volumes = set(proposal_volumes)
 
         if set_filtered_target_volumes.issubset(set_proposal_volumes):
