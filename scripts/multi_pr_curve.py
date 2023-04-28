@@ -14,7 +14,7 @@ if __name__ == '__main__':
   args = parser.parse_args()
 
   fig = plt.figure(figsize=(20,12))
-  for fname in args.yaml_files:
+  for i, fname in enumerate(args.yaml_files):
     print(f'plotting pr curve for {fname}')
     f = open(fname)
     data = yaml.load(f, Loader=yaml.SafeLoader)
@@ -23,8 +23,16 @@ if __name__ == '__main__':
         filtered_proposals[target] = proposals
     score_match_pairs = get_score_match_pairs(filtered_proposals)
 
+    if 'no_noise' in fname:
+       linestyle='-'
+    else:
+       linestyle='--'
+
+    if i == 0:
+       linestyle=':'
+
     precision, recall, _ = precision_recall_curve(score_match_pairs[:,0], score_match_pairs[:,1])
-    plt.plot(recall, precision, label=fname.split('.')[0].split('/')[-1])
+    plt.plot(recall, precision, label=fname.split('.')[0].split('/')[-1], linestyle=linestyle)
 
     print(f'mAP: {average_precision_score(score_match_pairs[:,0], score_match_pairs[:,1])}')
 
