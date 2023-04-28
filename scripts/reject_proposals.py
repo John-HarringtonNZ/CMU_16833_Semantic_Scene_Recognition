@@ -74,6 +74,7 @@ def volume_comparison_filter(target_file, proposals, target_traj_line):
     filtered_target_volumes = get_volumes(filtered_target_annotations)     
     set_filtered_target_volumes = set(filtered_target_volumes)
     
+    # Get volumes of proposals and check if filtered_target_volumes are subset of proposal_volumes among proposals
     filtered_proposals = []
     for proposal in proposals:
         proposal_annotation = get_scene_annotation(proposal['file_name'])
