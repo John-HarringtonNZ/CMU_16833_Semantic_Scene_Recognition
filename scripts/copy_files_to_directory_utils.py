@@ -4,6 +4,8 @@ import glob
 import shutil
 import random 
 
+SUBSAMPLE_RATIO = 15
+
 def copy_videos(source, destination_memory, destination_target, data_set_percent_size = float(0.07)):
 
     # Get the subdirectory names using list comprehension
@@ -15,6 +17,9 @@ def copy_videos(source, destination_memory, destination_target, data_set_percent
         
 
         files = [f for f in os.listdir(frame_folder) if f.endswith('.png')]
+
+        # Subsample before shuffling to get a more even temporally spread 
+        files = files[::SUBSAMPLE_RATIO]
 
         random.seed(0)
         random.shuffle(files)
