@@ -60,7 +60,7 @@ def identity_filter(target_file, proposals, target_traj_line):
 
     return proposals
 
-def volume_comparison_filter(target_file, proposals, target_traj_line, add_dropout=True, add_noise=True, dropout_prob=0.1, noise_std=0.1, threshold=1e-1):
+def volume_comparison_filter(target_file, proposals, target_traj_line, add_dropout=True, add_noise=True, dropout_prob=0.1, noise_std=0.1, threshold=0.1):
     """
     target_file -> string for file location
     proposals -> [Dict{'file_name':xx.png, 'score': 0.9}]
@@ -110,24 +110,35 @@ def volume_comparison_filter(target_file, proposals, target_traj_line, add_dropo
         row_ind, col_ind = linear_sum_assignment(cost_matrix)
 
         # Get the filtered proposals that have a cost less than or equal to the threshold
-        subset_count = 0
-        for k in range(len(row_ind)):
-            i = row_ind[k]
-            j = col_ind[k]
-            # breakpoint()
-            if cost_matrix[i, j] <= threshold:
-                subset_count += 1
-                
-        if (subset_count == len(row_ind)):
-            filtered_proposals.append(proposal)
+        # subset_count = 0
+        if len(row_ind) == 0:
+            # print("row_ind len is 0")
+            continue
+ 
+        else:
+            costs = np.zeros(len(row_ind))
 
+            for k in range(len(row_ind)):
+                i = row_ind[k]
+                j = col_ind[k]
+                costs[k] = cost_matrix[i, j]
+
+            mean_costs = np.mean(costs)
+
+            if mean_costs <= threshold:
+                filtered_proposals.append(proposal)
+                
+        # for k in range(len(row_ind)):
+        #     i = row_ind[k]
+        #     j = col_ind[k]
+
+        #     if cost_matrix[i, j] <= threshold:
+        #         subset_count += 1
+                
+        # if (subset_count == len(row_ind)):
+        #     filtered_proposals.append(proposal)
 
     return filtered_proposals
-
-        # if set_filtered_target_volumes.issubset(set_proposal_volumes):
-        #     filtered_proposals.append(proposal)
-        # else:
-        #     continue        
 
 
 def semantic_count_filter(target_file, proposals, target_traj_line, add_noise=True, noise_threshold=0.1):
