@@ -18,6 +18,7 @@ from arkit_scenes_utils import *
 from collections import Counter
 import yaml
 import random
+from scipy.optimize import linear_sum_assignment
 
 CACHED_SCENE_ANNOTATIONS = {}
 
@@ -59,7 +60,7 @@ def identity_filter(target_file, proposals, target_traj_line):
 
     return proposals
 
-def volume_comparison_filter(target_file, proposals, target_traj_line):
+def volume_comparison_filter(target_file, proposals, target_traj_line, add_dropout=True, add_noise=True, dropout_prob=0.1, noise_std=0.1, threshold=1e-1):
     """
     target_file -> string for file location
     proposals -> [Dict{'file_name':xx.png, 'score': 0.9}]
@@ -68,24 +69,66 @@ def volume_comparison_filter(target_file, proposals, target_traj_line):
     target_annotation = get_scene_annotation(target_file)
 
     # Filter target by frustrum
+    filtered_target_annotations, inds = filter_annotations_by_view_frustrum(target_file, target_annotation['data'], target_traj_line)
 
-    filtered_target_annotations, inds = filter_annotations_by_view_frustrum(target_annotation['data'], target_traj_line)
+    # Get volumes
+    filtered_target_volumes = get_volumes(filtered_target_annotations)     
 
-    # Get volumes of filtered_ target 
-    # filtered_target_volumes = get_scaled_volumes(filtered_target_annotations, target_traj_line)
-
-    filtered_target_volumes = get_volumes(filtered_target_annotations, target_traj_line)
-
-
-    print(filtered_target_volumes)
-    # Get volumes of proposal
+    # Apply target dropout
+    if add_dropout:
+        before_dropout_length= len(filtered_target_volumes)
+        num_to_remove = int(dropout_prob*before_dropout_length)
+        indices_to_remove = random.sample(range(before_dropout_length), num_to_remove)
+        filtered_target_volumes = np.delete(filtered_target_volumes, indices_to_remove)    
+    
+    # Apply target geometric noise
+    if add_noise:
+        filtered_target_volumes += np.random.normal(0, noise_std, size=filtered_target_volumes.shape)        
+    
+    # Get volumes of proposals and check if filtered_target_volumes are subset of proposal_volumes among proposals
+    filtered_proposals = []
     for proposal in proposals:
         proposal_annotation = get_scene_annotation(proposal['file_name'])
-        proposal_volumes = get_volumes(proposal_annotation)
-        print(proposal_volumes)
-        # TODO how to compare with target_volume and proposal volumes
+        proposal_volumes = get_volumes(proposal_annotation['data'])        
+        
+        # Apply proposal dropout
+        if add_dropout:
+            before_dropout_length= len(proposal_volumes)
+            num_to_remove = int(dropout_prob*before_dropout_length)
+            indices_to_remove = random.sample(range(before_dropout_length), num_to_remove)
+            proposal_volumes = np.delete(proposal_volumes, indices_to_remove)    
+        
+        # Apply proposal geometric noise
+        if add_noise:
+            proposal_volumes += np.random.normal(0, noise_std, size=proposal_volumes.shape)
+
+        # Create a cost matrix where the rows represent the elements of set_filtered_target_volumes, the columns represent the elements of set_proposal_volumes, 
+        # and the entries represent the absolute differences between the corresponding elements.                
+        cost_matrix = np.abs(filtered_target_volumes[:, np.newaxis] - proposal_volumes)
+
+        # Use the Hungarian algorithm to find the optimal assignment of elements. ls
+        row_ind, col_ind = linear_sum_assignment(cost_matrix)
+
+        # Get the filtered proposals that have a cost less than or equal to the threshold
+        subset_count = 0
+        for k in range(len(row_ind)):
+            i = row_ind[k]
+            j = col_ind[k]
+            # breakpoint()
+            if cost_matrix[i, j] <= threshold:
+                subset_count += 1
+                
+        if (subset_count == len(row_ind)):
+            filtered_proposals.append(proposal)
+
 
     return filtered_proposals
+
+        # if set_filtered_target_volumes.issubset(set_proposal_volumes):
+        #     filtered_proposals.append(proposal)
+        # else:
+        #     continue        
+
 
 def semantic_count_filter(target_file, proposals, target_traj_line, add_noise=True, noise_threshold=0.1):
     """
@@ -231,7 +274,7 @@ if __name__ == "__main__":
         "--proposals",type=str, default='../DBoW2/build/output.yaml'
     )
     parser.add_argument(
-        "--output_file",type=str, default='filtered_proposals.yaml'
+        "--output_file",type=str, default='filtered_proposals_combined.yaml'
     )
     parser.add_argument(
         "--memory-dir", type=str, default='ARKitScenes/memory'
@@ -246,6 +289,7 @@ if __name__ == "__main__":
 
     filters = [
         identity_filter,
+        volume_comparison_filter,
         semantic_count_filter,
         bbox_center_alignment_filter
     ]
