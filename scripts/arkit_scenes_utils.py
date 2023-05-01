@@ -253,6 +253,7 @@ def get_volumes(annotation_data):
         volumes.append(volume)
         
     volumes = np.asarray(volumes)
+    
     return volumes 
 
 
