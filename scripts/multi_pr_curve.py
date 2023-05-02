@@ -23,7 +23,7 @@ if __name__ == '__main__':
         filtered_proposals[target] = proposals
     score_match_pairs = get_score_match_pairs(filtered_proposals)
 
-    if 'no_noise' in fname:
+    if 'Noise-free' in fname:
        linestyle='-'
     else:
        linestyle='--'

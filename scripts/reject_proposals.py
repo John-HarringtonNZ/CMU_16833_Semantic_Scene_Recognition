@@ -187,14 +187,14 @@ def semantic_count_filter(target_file, proposals, target_traj_line, add_noise=Tr
 
     return filtered_proposals
 
-def bbox_center_alignment_filter(target_file, proposals, target_traj_line, noise_std=0.1, dropout_prob=0.1):
+def bbox_center_alignment_filter(target_file, proposals, target_traj_line, noise_std=0.0, dropout_prob=0.0):
     target_annotation = get_scene_annotation(target_file)
     filtered_target_annotations, _ = filter_annotations_by_view_frustrum(target_file, target_annotation['data'], target_traj_line)
     target_bbox_info_unfiltered = bbox_labeled_centers(filtered_target_annotations)
 
     # Apply target dropout
     target_bbox_info = []
-    for t in target_bbox_info_unfiltered:
+    for t in target_bbox_info_unfiltered:   
         if np.random.rand() >= dropout_prob:
             target_bbox_info.append(t)
     if len(target_bbox_info) <= 1:
@@ -282,7 +282,7 @@ if __name__ == "__main__":
         "--proposals",type=str, default='../DBoW2/build/output.yaml'
     )
     parser.add_argument(
-        "--output_file",type=str, default='Volume-Noisy-cost-0_1_std_0_1.yaml'
+        "--output_file",type=str, default='Alignment-Noise-free.yaml'
     )
     parser.add_argument(
         "--memory-dir", type=str, default='ARKitScenes/memory'
@@ -297,9 +297,9 @@ if __name__ == "__main__":
 
     filters = [
         identity_filter,
-        volume_comparison_filter
-        # semantic_count_filter,
-        # bbox_center_alignment_filter
+        volume_comparison_filter,
+        semantic_count_filter,
+        bbox_center_alignment_filter
     ]
 
     filtered_proposals = {}
