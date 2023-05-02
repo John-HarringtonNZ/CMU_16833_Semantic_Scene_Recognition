@@ -60,7 +60,7 @@ def identity_filter(target_file, proposals, target_traj_line):
 
     return proposals
 
-def volume_comparison_filter(target_file, proposals, target_traj_line, add_dropout=True, add_noise=True, dropout_threshold=0.95, noise_std=0.1, cost_threshold=0.1):
+def volume_comparison_filter(target_file, proposals, target_traj_line, add_dropout=True, add_noise=True, dropout_threshold=0.90, noise_std=0.01, cost_threshold=0.1):
     """
     target_file -> string for file location
     proposals -> [Dict{'file_name':xx.png, 'score': 0.9}]
@@ -282,7 +282,7 @@ if __name__ == "__main__":
         "--proposals",type=str, default='../DBoW2/build/output.yaml'
     )
     parser.add_argument(
-        "--output_file",type=str, default='Volume-Noisy-threshold-10.yaml'
+        "--output_file",type=str, default='Volume-Noisy-cost-0_1_std_0_1.yaml'
     )
     parser.add_argument(
         "--memory-dir", type=str, default='ARKitScenes/memory'
