@@ -190,9 +190,6 @@ def semantic_count_filter(target_file, proposals, target_traj_line, add_noise=Tr
 def bbox_center_alignment_filter(target_file, proposals, target_traj_line, noise_std=0.1, dropout_prob=0.1):
     target_annotation = get_scene_annotation(target_file)
     filtered_target_annotations, _ = filter_annotations_by_view_frustrum(target_file, target_annotation['data'], target_traj_line)
-    if len(filtered_target_annotations) <= 1:
-        # It doesn't make sense to run this filter if there are 1 or fewer bounding boxes in view
-        return proposals
     target_bbox_info_unfiltered = bbox_labeled_centers(filtered_target_annotations)
 
     # Apply target dropout
@@ -200,6 +197,9 @@ def bbox_center_alignment_filter(target_file, proposals, target_traj_line, noise
     for t in target_bbox_info_unfiltered:
         if np.random.rand() >= dropout_prob:
             target_bbox_info.append(t)
+    if len(target_bbox_info) <= 1:
+        # It doesn't make sense to run this filter if there are 1 or fewer bounding boxes in view
+        return proposals
     target_labels = [t['label'] for t in target_bbox_info]
     target_centers = np.array([t['center'].flatten() for t in target_bbox_info])
     # Apply target geometric noise
