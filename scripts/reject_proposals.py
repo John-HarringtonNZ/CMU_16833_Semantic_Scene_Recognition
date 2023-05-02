@@ -77,9 +77,10 @@ def volume_comparison_filter(target_file, proposals, target_traj_line, add_dropo
     # Apply target dropout
     if add_dropout:
         before_dropout_length= len(filtered_target_volumes)
-        num_to_remove = int(dropout_prob*before_dropout_length)
-        indices_to_remove = random.sample(range(before_dropout_length), num_to_remove)
-        filtered_target_volumes = np.delete(filtered_target_volumes, indices_to_remove)    
+        if before_dropout_length > 2:
+            num_to_remove = max(1,int(dropout_prob*before_dropout_length))
+            indices_to_remove = random.sample(range(before_dropout_length), num_to_remove)
+            filtered_target_volumes = np.delete(filtered_target_volumes, indices_to_remove)    
     
     # Apply target geometric noise
     if add_noise:
@@ -94,10 +95,14 @@ def volume_comparison_filter(target_file, proposals, target_traj_line, add_dropo
         # Apply proposal dropout
         if add_dropout:
             before_dropout_length= len(proposal_volumes)
-            num_to_remove = int(dropout_prob*before_dropout_length)
-            indices_to_remove = random.sample(range(before_dropout_length), num_to_remove)
-            proposal_volumes = np.delete(proposal_volumes, indices_to_remove)    
+            if before_dropout_length > 2:
+                num_to_remove = max(1, int(dropout_prob*before_dropout_length))
+                indices_to_remove = random.sample(range(before_dropout_length), num_to_remove)
+                proposal_volumes = np.delete(proposal_volumes, indices_to_remove)    
         
+        # if len(filtered_target_annotations) > 0 :
+        #     breakpoint()
+
         # Apply proposal geometric noise
         if add_noise:
             proposal_volumes += np.random.normal(0, noise_std, size=proposal_volumes.shape)
@@ -106,7 +111,7 @@ def volume_comparison_filter(target_file, proposals, target_traj_line, add_dropo
         # and the entries represent the absolute differences between the corresponding elements.                
         cost_matrix = np.abs(filtered_target_volumes[:, np.newaxis] - proposal_volumes)
 
-        # Use the Hungarian algorithm to find the optimal assignment of elements. ls
+        # Use the Hungarian algorithm to find the optimal assignment of elements. 
         row_ind, col_ind = linear_sum_assignment(cost_matrix)
 
         # Get the filtered proposals that have a cost less than or equal to the threshold
@@ -285,7 +290,7 @@ if __name__ == "__main__":
         "--proposals",type=str, default='../DBoW2/build/output.yaml'
     )
     parser.add_argument(
-        "--output_file",type=str, default='filtered_proposals_combined.yaml'
+        "--output_file",type=str, default='Volume__Noisy.yaml'
     )
     parser.add_argument(
         "--memory-dir", type=str, default='ARKitScenes/memory'
@@ -300,9 +305,9 @@ if __name__ == "__main__":
 
     filters = [
         identity_filter,
-        volume_comparison_filter,
-        semantic_count_filter,
-        bbox_center_alignment_filter
+        volume_comparison_filter
+        # semantic_count_filter,
+        # bbox_center_alignment_filter
     ]
 
     filtered_proposals = {}
